@@ -1,1 +1,155 @@
-# ERP-higieniza-o
+# ERP Higienizacao
+
+Projeto inicial em Django para gerenciamento de:
+
+- catalogo de produtos
+- orcamentos
+- clientes gerados a partir de orcamentos aprovados
+
+## Stack
+
+- Python 3.14
+- Django 6.0.4
+- SQLite
+- Bootstrap 5
+
+## Funcionalidades Atuais
+
+- cadastro e listagem de produtos do catalogo
+- criacao de orcamentos com selecao de itens do catalogo
+- aprovacao de orcamento com criacao automatica de cliente
+- listagem de clientes
+- painel web com navbar e sidebar
+
+## Modelos Principais
+
+### `Service_catalog`
+
+Representa os produtos/servicos do catalogo.
+
+Campos principais:
+
+- `name`
+- `tipo`
+- `valor`
+- `descricao`
+- `tempo`
+- `formato`
+- `tamanho`
+- `largura`
+- `comprimento`
+- `tecido`
+
+### `Orcamento`
+
+Representa um orcamento criado a partir de itens do catalogo.
+
+Campos principais:
+
+- `name`
+- `email`
+- `telefone`
+- `endereco`
+- `valor`
+- `descricao`
+- `quantidade`
+- `aprovado`
+- `cliente`
+- `itens`
+
+### `Cliente`
+
+Representa o cliente final vinculado a um orcamento aprovado.
+
+Campos principais:
+
+- `name`
+- `email`
+- `telefone`
+- `endereco`
+
+## Fluxo Principal
+
+1. Cadastrar produtos no catalogo
+2. Criar um orcamento selecionando itens do catalogo
+3. Aprovar o orcamento
+4. Criar automaticamente o cliente com base nos dados do orcamento
+5. Consultar os clientes cadastrados na tela de clientes
+
+## Rotas Principais
+
+- `/catalogo/` - listagem do catalogo
+- `/catalogo/novo/` - cadastro de produto
+- `/orcamentos/novo/` - criacao de orcamento
+- `/orcamentos/<id>/` - detalhe do orcamento
+- `/orcamentos/<id>/aprovar/` - aprovacao do orcamento
+- `/clientes/` - listagem de clientes
+
+## Como Rodar Localmente
+
+### 1. Ativar o ambiente virtual
+
+No PowerShell:
+
+```powershell
+venv\Scripts\Activate.ps1
+```
+
+### 2. Aplicar migrations
+
+```powershell
+python manage.py migrate
+```
+
+### 3. Rodar o servidor
+
+```powershell
+python manage.py runserver
+```
+
+Abra no navegador:
+
+```text
+http://127.0.0.1:8000/
+```
+
+## Comandos Uteis
+
+### Criar novas migrations
+
+```powershell
+python manage.py makemigrations
+```
+
+### Aplicar migrations
+
+```powershell
+python manage.py migrate
+```
+
+### Rodar testes
+
+```powershell
+python manage.py test service
+```
+
+### Verificar o projeto
+
+```powershell
+python manage.py check
+```
+
+## Estrutura Inicial
+
+```text
+core/       configuracao principal do Django
+service/    app principal com models, views, forms, urls e templates
+venv/       ambiente virtual local
+db.sqlite3  banco local de desenvolvimento
+```
+
+## Observacoes
+
+- o projeto usa `db.sqlite3` apenas para desenvolvimento local
+- existe `.gitignore` para evitar subir ambiente virtual, cache e arquivos locais
+- o visual atual usa Bootstrap por CDN
