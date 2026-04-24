@@ -4,6 +4,7 @@ from service.views import (
     aprovar_orcamento,
     catalogo,
     detalhe_orcamento,
+    gerar_orcamento_pdf,
     inicio,
     listar_clientes,
     novo_orcamento,
@@ -19,5 +20,6 @@ urlpatterns = [
     path("catalogo/novo/", novo_produto, name="novo_produto"),
     path("orcamentos/novo/", novo_orcamento, name="novo_orcamento"),
     path("orcamentos/<int:pk>/", detalhe_orcamento, name="orcamento_detalhe"),
+    path("orcamentos/<int:pk>/pdf/", gerar_orcamento_pdf, name="gerar_orcamento_pdf"),
     path("orcamentos/<int:pk>/aprovar/", aprovar_orcamento, name="aprovar_orcamento"),
 ]

@@ -104,3 +104,22 @@ class ServiceViewsTests(TestCase):
         self.assertTrue(orcamento.aprovado)
         self.assertEqual(orcamento.cliente, cliente)
         self.assertEqual(cliente.email, "aprovado@teste.com")
+
+    def test_gera_pdf_do_orcamento(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente PDF",
+            email="pdf@teste.com",
+            telefone="11977776666",
+            endereco="Rua PDF, 100",
+            quantidade=1,
+            valor=120.0,
+            descricao="Teste de PDF",
+        )
+        orcamento.itens.set([self.item_a, self.item_b])
+
+        response = self.client.get(reverse("gerar_orcamento_pdf", args=[orcamento.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn(f'orcamento-{orcamento.pk}.pdf', response["Content-Disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF"))

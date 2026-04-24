@@ -78,6 +78,7 @@
                             <button type="submit" class="btn btn-success">Concluir e criar cliente</button>
                         </form>
                     {% endif %}
+                    <a class="btn btn-primary" href="{% url 'gerar_orcamento_pdf' orcamento.pk %}">Gerar PDF</a>
                     <a class="btn btn-outline-secondary" href="{% url 'novo_orcamento' %}">Criar outro orcamento</a>
                 </div>
             </div>
