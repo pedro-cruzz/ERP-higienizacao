@@ -1,0 +1,55 @@
+{% extends "service/base.html" %}
+
+{% block title %}Catalogo | ERP Higienizacao{% endblock %}
+
+{% block content %}
+    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
+        <span class="badge rounded-pill px-3 py-2 mb-3">Catalogo de produtos</span>
+        <h1 class="display-6 fw-semibold">Seus itens ja cadastrados, organizados para consulta rapida.</h1>
+        <p class="mb-0 text-white-50">
+            Use esta primeira tela para navegar pelo catalogo, conferir descricao,
+            tipo e valor base de cada item antes de montar um orcamento.
+        </p>
+    </section>
+
+    <section class="content-card p-4 mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-8">
+                <label for="q" class="form-label fw-semibold">Buscar no catalogo</label>
+                <input id="q" name="q" value="{{ busca }}" placeholder="Nome, tipo ou descricao" class="form-control form-control-lg">
+            </div>
+            <div class="col-12 col-lg-4">
+                <button type="submit" class="btn btn-success btn-lg w-100">Buscar</button>
+            </div>
+        </form>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a href="{% url 'novo_produto' %}" class="btn btn-success">Cadastrar produto</a>
+            <a href="{% url 'novo_orcamento' %}" class="btn btn-outline-secondary">Criar orcamento</a>
+        </div>
+        <p class="muted-copy mt-3 mb-0">Total encontrado: {{ total_itens }} item(ns).</p>
+    </section>
+
+    {% if itens %}
+        <section class="row g-4">
+            {% for item in itens %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="product-card h-100 p-4">
+                        <span class="badge text-bg-light border text-dark rounded-pill px-3 py-2">{{ item.tipo|default:"Sem tipo" }}</span>
+                        <h2 class="h4 mt-3">{{ item.name }}</h2>
+                        <p class="muted-copy mb-3">{{ item.descricao|default:"Sem descricao cadastrada." }}</p>
+                        <p class="price-tag mb-3">R$ {{ item.valor|floatformat:2 }}</p>
+                        <ul class="list-clean small muted-copy">
+                            <li><strong class="text-dark">Tempo:</strong> {{ item.tempo|default:"Nao informado" }}</li>
+                            <li><strong class="text-dark">Formato:</strong> {{ item.formato|default:"Nao informado" }}</li>
+                            <li><strong class="text-dark">Tecido:</strong> {{ item.tecido|default:"Nao informado" }}</li>
+                        </ul>
+                    </article>
+                </div>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty-state text-center p-5">
+            Nenhum item encontrado no catalogo ainda. Cadastre alguns produtos pela tela de cadastro ou ajuste sua busca.
+        </section>
+    {% endif %}
+{% endblock %}

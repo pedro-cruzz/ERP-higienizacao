@@ -1,0 +1,86 @@
+{% extends "service/base.html" %}
+
+{% block title %}Orcamento {{ orcamento.id }} | ERP Higienizacao{% endblock %}
+
+{% block content %}
+    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
+        <span class="badge rounded-pill px-3 py-2 mb-3">Resumo do orcamento</span>
+        <h1 class="display-6 fw-semibold">{{ orcamento.name }}</h1>
+        <p class="mb-0 text-white-50">{{ orcamento.descricao|default:"Sem observacoes registradas para este orcamento." }}</p>
+    </section>
+
+    <section class="row g-4">
+        <article class="col-12 col-xl-8">
+            <div class="section-card p-4">
+            <h2 class="h4 mb-4">Itens selecionados</h2>
+            {% if itens %}
+                <div class="list-group list-group-flush">
+                    {% for item in itens %}
+                        <div class="list-group-item px-0 py-3 bg-transparent border-bottom">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <div class="fw-semibold">{{ item.name }}</div>
+                                    <div class="small muted-copy">{{ item.tipo|default:"Sem tipo" }}</div>
+                                </div>
+                                <div class="price-tag">R$ {{ item.valor|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state text-center p-4">Este orcamento nao possui itens.</div>
+            {% endif %}
+            </div>
+        </article>
+
+        <aside class="col-12 col-xl-4">
+            <div class="section-card p-4">
+                <h2 class="h4 mb-4">Resumo financeiro</h2>
+                <div class="d-grid gap-3">
+                    <div class="mini-stat p-3">
+                        <div class="small text-uppercase text-secondary fw-semibold">Status</div>
+                        <div class="fs-5 fw-bold">
+                            {% if orcamento.aprovado %}
+                                <span class="text-success">Aprovado</span>
+                            {% else %}
+                                <span class="text-warning">Pendente</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mini-stat p-3">
+                        <div class="small text-uppercase text-secondary fw-semibold">Quantidade</div>
+                        <div class="fs-4 fw-bold">{{ orcamento.quantidade }}</div>
+                    </div>
+                    <div class="mini-stat p-3">
+                        <div class="small text-uppercase text-secondary fw-semibold">Valor total</div>
+                        <div class="price-tag">R$ {{ orcamento.valor|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <p class="muted-copy mt-3">O total foi calculado com base nos itens escolhidos multiplicados pela quantidade informada.</p>
+                <div class="mini-stat p-3 mt-3">
+                    <div class="small text-uppercase text-secondary fw-semibold">Dados do cliente</div>
+                    <div class="mt-2"><strong>{{ orcamento.name }}</strong></div>
+                    <div class="small muted-copy">{{ orcamento.email|default:"Sem email" }}</div>
+                    <div class="small muted-copy">{{ orcamento.telefone|default:"Sem telefone" }}</div>
+                    <div class="small muted-copy">{{ orcamento.endereco|default:"Sem endereco" }}</div>
+                </div>
+                {% if orcamento.cliente %}
+                    <div class="mini-stat p-3 mt-3">
+                        <div class="small text-uppercase text-secondary fw-semibold">Cliente vinculado</div>
+                        <div class="mt-2 fw-semibold">{{ orcamento.cliente.name }}</div>
+                        <div class="small muted-copy">{{ orcamento.cliente.email }}</div>
+                    </div>
+                {% endif %}
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    {% if not orcamento.aprovado %}
+                        <form method="post" action="{% url 'aprovar_orcamento' orcamento.pk %}" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">Concluir e criar cliente</button>
+                        </form>
+                    {% endif %}
+                    <a class="btn btn-outline-secondary" href="{% url 'novo_orcamento' %}">Criar outro orcamento</a>
+                </div>
+            </div>
+        </aside>
+    </section>
+{% endblock %}

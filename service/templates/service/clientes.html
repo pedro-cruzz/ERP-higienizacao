@@ -1,0 +1,60 @@
+{% extends "service/base.html" %}
+
+{% block title %}Clientes | ERP Higienizacao{% endblock %}
+
+{% block content %}
+    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
+        <span class="badge rounded-pill px-3 py-2 mb-3">Clientes</span>
+        <h1 class="display-6 fw-semibold">Cadastros de clientes gerados pelos orcamentos aprovados.</h1>
+        <p class="mb-0 text-white-50">
+            Consulte contatos, busque por nome ou email e acompanhe quem ja entrou para a base.
+        </p>
+    </section>
+
+    <section class="content-card p-4 mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-8">
+                <label for="q" class="form-label fw-semibold">Buscar cliente</label>
+                <input id="q" name="q" value="{{ busca }}" placeholder="Nome, email ou telefone" class="form-control form-control-lg">
+            </div>
+            <div class="col-12 col-lg-4">
+                <button type="submit" class="btn btn-success btn-lg w-100">Buscar</button>
+            </div>
+        </form>
+        <p class="muted-copy mt-3 mb-0">Total encontrado: {{ total_clientes }} cliente(s).</p>
+    </section>
+
+    <section class="section-card p-4">
+        <h2 class="h4 mb-4">Lista de clientes</h2>
+        {% if clientes %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Telefone</th>
+                            <th>Endereco</th>
+                            <th>Orcamentos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                            <tr>
+                                <td class="fw-semibold">{{ cliente.name }}</td>
+                                <td>{{ cliente.email }}</td>
+                                <td>{{ cliente.telefone|default:"-" }}</td>
+                                <td>{{ cliente.endereco|default:"-" }}</td>
+                                <td>{{ cliente.orcamentos.count }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state text-center p-5">
+                Nenhum cliente cadastrado ainda. Eles aparecerao aqui quando um orcamento for aprovado.
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

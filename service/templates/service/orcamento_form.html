@@ -1,0 +1,97 @@
+{% extends "service/base.html" %}
+
+{% block title %}Novo Orcamento | ERP Higienizacao{% endblock %}
+
+{% block content %}
+    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
+        <span class="badge rounded-pill px-3 py-2 mb-3">Orcamentos</span>
+        <h1 class="display-6 fw-semibold">Monte um orcamento inicial com os itens do seu catalogo.</h1>
+        <p class="mb-0 text-white-50">
+            Esta tela ja salva o cliente, a quantidade, os itens escolhidos e o valor
+            total calculado automaticamente.
+        </p>
+    </section>
+
+    <section class="row g-4">
+        <article class="col-12 col-xl-8">
+            <div class="content-card p-4">
+                <h2 class="h4 mb-4">Novo orcamento</h2>
+                <form method="post" class="row g-3">
+                {% csrf_token %}
+
+                <div class="col-12 col-md-6">
+                    <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label for="{{ form.telefone.id_for_label }}" class="form-label fw-semibold">{{ form.telefone.label }}</label>
+                    {{ form.telefone }}
+                    {{ form.telefone.errors }}
+                </div>
+
+                <div class="col-12">
+                    <label for="{{ form.endereco.id_for_label }}" class="form-label fw-semibold">{{ form.endereco.label }}</label>
+                    {{ form.endereco }}
+                    {{ form.endereco.errors }}
+                </div>
+
+                <div class="col-12">
+                    <label for="{{ form.descricao.id_for_label }}" class="form-label fw-semibold">{{ form.descricao.label }}</label>
+                    {{ form.descricao }}
+                    {{ form.descricao.errors }}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="{{ form.quantidade.id_for_label }}" class="form-label fw-semibold">{{ form.quantidade.label }}</label>
+                    {{ form.quantidade }}
+                    {{ form.quantidade.errors }}
+                </div>
+
+                <div class="col-12">
+                    <label for="{{ form.itens.id_for_label }}" class="form-label fw-semibold">{{ form.itens.label }}</label>
+                    {{ form.itens }}
+                    <div class="form-text">Segure `Ctrl` para selecionar mais de um item.</div>
+                    {{ form.itens.errors }}
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Salvar orcamento</button>
+                </div>
+            </form>
+                </div>
+        </article>
+
+        <aside class="col-12 col-xl-4">
+            <div class="section-card p-4">
+                <h2 class="h4 mb-4">Orcamentos recentes</h2>
+                {% if orcamentos_recentes %}
+                    <div class="list-group list-group-flush">
+                        {% for item in orcamentos_recentes %}
+                            <a href="{% url 'orcamento_detalhe' item.pk %}" class="list-group-item list-group-item-action px-0 py-3 bg-transparent border-bottom">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div>
+                                        <div class="fw-semibold">{{ item.name }}</div>
+                                        <div class="small muted-copy">{{ item.quantidade }} unidade(s)</div>
+                                    </div>
+                                    <div class="price-tag">R$ {{ item.valor|floatformat:2 }}</div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state text-center p-4">
+                        Nenhum orcamento salvo ainda.
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+{% endblock %}
