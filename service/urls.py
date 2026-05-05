@@ -7,6 +7,7 @@ from service.views import (
     gerar_orcamento_pdf,
     inicio,
     listar_clientes,
+    listar_leads,
     novo_orcamento,
     novo_produto,
     teste,
@@ -15,6 +16,7 @@ from service.views import (
 urlpatterns = [
     path("", inicio, name="inicio"),
     path("teste/", teste, name="teste"),
+    path("leads/", listar_leads, name="leads"),
     path("catalogo/", catalogo, name="catalogo"),
     path("clientes/", listar_clientes, name="clientes"),
     path("catalogo/novo/", novo_produto, name="novo_produto"),

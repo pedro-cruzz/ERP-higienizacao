@@ -1,0 +1,77 @@
+{% extends "service/base.html" %}
+
+{% block title %}Leads | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="page-heading">
+        <div>
+            <h1>Leads</h1>
+            <p>Gerencie seus potenciais clientes</p>
+        </div>
+        <a href="{% url 'clientes' %}" class="hf-btn hf-btn-primary">
+            <i class="bi bi-plus-lg"></i>
+            <span>Novo Lead</span>
+        </a>
+    </section>
+
+    <section class="leads-panel" aria-label="Lista de leads">
+        <div class="leads-toolbar">
+            <form method="get" class="leads-search">
+                <i class="bi bi-search"></i>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ busca }}"
+                    placeholder="Buscar por nome ou telefone..."
+                    aria-label="Buscar por nome ou telefone"
+                >
+            </form>
+            <button type="button" class="filter-button">
+                <i class="bi bi-funnel"></i>
+                <span>Filtros</span>
+            </button>
+        </div>
+
+        <div class="leads-table-wrap">
+            <table class="leads-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>WhatsApp</th>
+                        <th>Status</th>
+                        <th>Origem</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                        <tr>
+                            <td class="lead-name">{{ lead.name }}</td>
+                            <td>{{ lead.telefone }}</td>
+                            <td>
+                                <span class="status-pill {{ lead.status_class }}">{{ lead.status }}</span>
+                            </td>
+                            <td>{{ lead.origem }}</td>
+                            <td>{{ lead.data }}</td>
+                            <td>
+                                <a href="{% url 'novo_orcamento' %}" class="quote-button">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    <span>Criar Orçamento</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="table-empty">
+                                    Nenhum lead encontrado para a busca atual.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endblock %}

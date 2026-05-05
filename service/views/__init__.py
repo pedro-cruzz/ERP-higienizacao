@@ -1,4 +1,4 @@
-from service.views.catalogo import catalogo, listar_clientes
+from service.views.catalogo import catalogo, listar_clientes, listar_leads
 from service.views.comum import inicio, teste
 from service.views.orcamentos import (
     aprovar_orcamento,
@@ -15,6 +15,7 @@ __all__ = [
     "gerar_orcamento_pdf",
     "inicio",
     "listar_clientes",
+    "listar_leads",
     "novo_orcamento",
     "novo_produto",
     "teste",

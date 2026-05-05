@@ -1,0 +1,174 @@
+{% extends "service/base.html" %}
+
+{% block title %}Inicio | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="page-heading dashboard-heading">
+        <div>
+            <h1>Início</h1>
+            <p>Bem-vindo ao painel de controle</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'leads' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Lead</span>
+            </a>
+            <a href="{% url 'novo_orcamento' %}" class="hf-btn hf-btn-primary">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Orçamento</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Indicadores principais">
+        <article class="metric-card">
+            <div>
+                <p>Total de Leads</p>
+                <strong>{{ total_leads }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>+12%</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-people"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Taxa de Conversão</p>
+                <strong>{{ taxa_conversao }}%</strong>
+                <span><i class="bi bi-arrow-up-right"></i>+5%</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Serviços Ativos</p>
+                <strong>{{ servicos_ativos }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>+3</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-clipboard-check"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Faturamento</p>
+                <strong>R$ {{ faturamento|floatformat:0 }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>+18%</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
+        </article>
+    </section>
+
+    <section class="recent-grid">
+        <article class="dashboard-card">
+            <header>
+                <h2>Leads Recentes</h2>
+                <a href="{% url 'leads' %}">Ver todos <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
+                {% if leads_recentes %}
+                    {% for lead in leads_recentes %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ lead.name }}</strong>
+                                <span>{{ lead.telefone|default:lead.email }}</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="status-pill status-blue">Novo</span>
+                                <time>29/04/2026</time>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="recent-row">
+                        <div>
+                            <strong>Maria Santos</strong>
+                            <span>(11) 98765-4321</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-blue">Novo</span>
+                            <time>29/04/2026</time>
+                        </div>
+                    </div>
+                    <div class="recent-row">
+                        <div>
+                            <strong>Carlos Oliveira</strong>
+                            <span>(11) 97654-3210</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-yellow">Contatado</span>
+                            <time>28/04/2026</time>
+                        </div>
+                    </div>
+                    <div class="recent-row">
+                        <div>
+                            <strong>Ana Costa</strong>
+                            <span>(11) 96543-2109</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-gray">Aguardando</span>
+                            <time>28/04/2026</time>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <header>
+                <h2>Ordens de Serviço Recentes</h2>
+                <a href="{% url 'catalogo' %}">Ver todas <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
+                {% if ordens_recentes %}
+                    {% for ordem in ordens_recentes %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ ordem.name }}</strong>
+                                <span>{{ ordem.itens.first.name|default:"Serviço cadastrado" }}</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="status-pill {% if ordem.aprovado %}status-soft-blue{% else %}status-purple{% endif %}">
+                                    {% if ordem.aprovado %}Concluída{% else %}Em execução{% endif %}
+                                </span>
+                                <strong>R$ {{ ordem.valor|floatformat:0 }}</strong>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="recent-row">
+                        <div>
+                            <strong>Pedro Lima</strong>
+                            <span>Limpeza de Sofá</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-purple">Em execução</span>
+                            <strong>R$ 450</strong>
+                        </div>
+                    </div>
+                    <div class="recent-row">
+                        <div>
+                            <strong>Júlia Ferreira</strong>
+                            <span>Higienização de Tapete</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-blue">Agendada</span>
+                            <strong>R$ 320</strong>
+                        </div>
+                    </div>
+                    <div class="recent-row">
+                        <div>
+                            <strong>Roberto Alves</strong>
+                            <span>Limpeza de Estofados</span>
+                        </div>
+                        <div class="recent-meta">
+                            <span class="status-pill status-soft-blue">Concluída</span>
+                            <strong>R$ 680</strong>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+    </section>
+{% endblock %}
