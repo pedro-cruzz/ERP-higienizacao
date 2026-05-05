@@ -13,6 +13,8 @@ class Service_catalog(models.Model):
     largura = models.CharField(max_length=100, null=True)
     comprimento = models.CharField(max_length=100, null=True)
     tecido = models.CharField(max_length=100, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -23,7 +25,14 @@ class Orcamento(models.Model):
     name = models.CharField(max_length=100, null=False)
     email = models.EmailField(null=True, blank=True)
     telefone = models.CharField(max_length=20, null=True, blank=True)
-    endereco = models.CharField(max_length=200, null=True, blank=True)
+    endereco = models.CharField(max_length=255, null=True, blank=True)
+    cep = models.CharField(max_length=9, null=True, blank=True)
+    logradouro = models.CharField(max_length=120, null=True, blank=True)
+    numero = models.CharField(max_length=20, null=True, blank=True)
+    complemento = models.CharField(max_length=120, null=True, blank=True)
+    bairro = models.CharField(max_length=120, null=True, blank=True)
+    cidade = models.CharField(max_length=120, null=True, blank=True)
+    uf = models.CharField(max_length=2, null=True, blank=True)
     valor = models.FloatField(null=False)
     descricao = models.TextField(null=True)
     quantidade = models.IntegerField(null=False)
@@ -36,19 +45,42 @@ class Orcamento(models.Model):
         blank=True,
         related_name="orcamentos",
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "service_orcamento"
 
     def __str__(self):
         return self.name
-    
+
+
 class Cliente(models.Model):
+    class Status(models.TextChoices):
+        NOVO = "novo", "Novo"
+        CONTATADO = "contatado", "Contatado"
+        AGUARDANDO = "aguardando", "Aguardando"
+        CONVERTIDO = "convertido", "Convertido"
+
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, null=False)
     email = models.EmailField(null=False)
     telefone = models.CharField(max_length=20, null=True, blank=True)
-    endereco = models.CharField(max_length=200, null=True, blank=True)
+    endereco = models.CharField(max_length=255, null=True, blank=True)
+    cep = models.CharField(max_length=9, null=True, blank=True)
+    logradouro = models.CharField(max_length=120, null=True, blank=True)
+    numero = models.CharField(max_length=20, null=True, blank=True)
+    complemento = models.CharField(max_length=120, null=True, blank=True)
+    bairro = models.CharField(max_length=120, null=True, blank=True)
+    cidade = models.CharField(max_length=120, null=True, blank=True)
+    uf = models.CharField(max_length=2, null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NOVO,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name

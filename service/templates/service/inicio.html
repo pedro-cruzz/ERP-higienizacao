@@ -1,0 +1,114 @@
+{% extends "service/base.html" %}
+
+{% block title %}Inicio | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="dashboard-heading">
+        <div>
+            <h1>Início</h1>
+            <p>Bem-vindo ao painel de controle</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'novo_lead' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Lead</span>
+            </a>
+            <a href="{% url 'novo_orcamento' %}" class="hf-btn hf-btn-primary">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo Orçamento</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Indicadores principais">
+        <article class="metric-card">
+            <div>
+                <p>Total de Leads</p>
+                <strong>{{ total_leads }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>{{ total_leads_delta }}</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-people"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Taxa de Conversão</p>
+                <strong>{{ taxa_conversao }}%</strong>
+                <span><i class="bi bi-arrow-up-right"></i>{{ taxa_conversao_delta }}</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Serviços Ativos</p>
+                <strong>{{ servicos_ativos }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>{{ servicos_ativos_delta }}</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-clipboard-check"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Faturamento</p>
+                <strong>R$ {{ faturamento|floatformat:0 }}</strong>
+                <span><i class="bi bi-arrow-up-right"></i>{{ faturamento_delta }}</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
+        </article>
+    </section>
+
+    <section class="recent-grid">
+        <article class="dashboard-card">
+            <header>
+                <h2>Leads Recentes</h2>
+                <a href="{% url 'clientes' %}">Ver todos <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
+                {% if leads_recentes %}
+                    {% for lead in leads_recentes %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ lead.name }}</strong>
+                                <span>{{ lead.contato }}</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="status-pill {{ lead.status_class }}">{{ lead.status_label }}</span>
+                                <time>{{ lead.created_at|date:"d/m/Y" }}</time>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-dashboard-state">Nenhum lead cadastrado ainda.</div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="dashboard-card">
+            <header>
+                <h2>Ordens de Serviço Recentes</h2>
+                <a href="{% url 'orcamentos' %}">Ver todas <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
+                {% if ordens_recentes %}
+                    {% for ordem in ordens_recentes %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ ordem.name }}</strong>
+                                <span>{{ ordem.servico }}</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="status-pill {{ ordem.status_class }}">{{ ordem.status_label }}</span>
+                                <strong>R$ {{ ordem.valor|floatformat:0 }}</strong>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-dashboard-state">Nenhuma ordem cadastrada ainda.</div>
+                {% endif %}
+            </div>
+        </article>
+    </section>
+{% endblock %}

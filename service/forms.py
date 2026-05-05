@@ -1,6 +1,6 @@
 from django import forms
 
-from service.models import Service_catalog
+from service.models import Cliente, Service_catalog
 
 
 class ProdutoCatalogoForm(forms.ModelForm):
@@ -66,6 +66,34 @@ class ProdutoCatalogoForm(forms.ModelForm):
             if name == "valor":
                 base_class = "form-control"
             widget.attrs["class"] = f"{current_class} {base_class}".strip()
+
+
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = ["name", "email", "telefone", "endereco", "status"]
+        labels = {
+            "name": "Nome do lead",
+            "email": "Email",
+            "telefone": "Telefone",
+            "endereco": "Endereco",
+            "status": "Status",
+        }
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Ex.: Maria Souza"}),
+            "email": forms.EmailInput(attrs={"placeholder": "cliente@empresa.com"}),
+            "telefone": forms.TextInput(attrs={"placeholder": "(11) 99999-9999"}),
+            "endereco": forms.TextInput(attrs={"placeholder": "Rua, numero, bairro"}),
+            "status": forms.Select(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["telefone"].required = False
+        self.fields["endereco"].required = False
+
+        for name, field in self.fields.items():
+            field.widget.attrs["class"] = "form-select" if name == "status" else "form-control"
 
 
 class OrcamentoForm(forms.Form):

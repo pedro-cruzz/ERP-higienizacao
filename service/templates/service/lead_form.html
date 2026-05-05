@@ -1,0 +1,84 @@
+{% extends "service/base.html" %}
+
+{% block title %}Novo Lead | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
+        <span class="badge rounded-pill px-3 py-2 mb-3">Leads</span>
+        <h1 class="display-6 fw-semibold">Cadastre um novo contato para acompanhar no painel.</h1>
+        <p class="mb-0 text-white-50">
+            O lead entra na lista recente da tela inicial e pode virar cliente quando um orcamento for aprovado.
+        </p>
+    </section>
+
+    <section class="row g-4">
+        <article class="col-12 col-xl-8">
+            <div class="content-card p-4">
+                <h2 class="h4 mb-4">Novo lead</h2>
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+
+                    <div class="col-12 col-md-6">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {{ form.email.errors }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label for="{{ form.telefone.id_for_label }}" class="form-label fw-semibold">{{ form.telefone.label }}</label>
+                        {{ form.telefone }}
+                        {{ form.telefone.errors }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">{{ form.status.label }}</label>
+                        {{ form.status }}
+                        {{ form.status.errors }}
+                    </div>
+
+                    <div class="col-12">
+                        <label for="{{ form.endereco.id_for_label }}" class="form-label fw-semibold">{{ form.endereco.label }}</label>
+                        {{ form.endereco }}
+                        {{ form.endereco.errors }}
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">Salvar lead</button>
+                        <a href="{% url 'inicio' %}" class="btn btn-outline-secondary ms-2">Voltar</a>
+                    </div>
+                </form>
+            </div>
+        </article>
+
+        <aside class="col-12 col-xl-4">
+            <div class="section-card p-4">
+                <h2 class="h4 mb-4">Leads recentes</h2>
+                {% if leads_recentes %}
+                    <div class="list-group list-group-flush">
+                        {% for lead in leads_recentes %}
+                            <div class="list-group-item px-0 py-3 bg-transparent border-bottom">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div>
+                                        <div class="fw-semibold">{{ lead.name }}</div>
+                                        <div class="small muted-copy">{{ lead.telefone|default:lead.email }}</div>
+                                    </div>
+                                    <span class="badge text-bg-light border text-dark rounded-pill align-self-start">{{ lead.get_status_display }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state text-center p-4">
+                        Nenhum lead cadastrado ainda.
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+{% endblock %}

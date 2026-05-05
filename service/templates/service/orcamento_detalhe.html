@@ -41,7 +41,7 @@
                         <div class="small text-uppercase text-secondary fw-semibold">Status</div>
                         <div class="fs-5 fw-bold">
                             {% if orcamento.aprovado %}
-                                <span class="text-success">Aprovado</span>
+                                <span class="text-success">Concluido</span>
                             {% else %}
                                 <span class="text-warning">Pendente</span>
                             {% endif %}
@@ -73,13 +73,39 @@
                 {% endif %}
                 <div class="d-flex flex-wrap gap-2 mt-3">
                     {% if not orcamento.aprovado %}
-                        <form method="post" action="{% url 'aprovar_orcamento' orcamento.pk %}" class="m-0">
+                        <form
+                            method="post"
+                            action="{% url 'concluir_orcamento' orcamento.pk %}"
+                            class="m-0"
+                            data-hf-confirm
+                            data-hf-confirm-icon="question"
+                            data-hf-confirm-title="Concluir orçamento?"
+                            data-hf-confirm-text="O orçamento será marcado como concluído sem cadastrar cliente automaticamente."
+                            data-hf-confirm-button="Concluir"
+                        >
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-success">Concluir e criar cliente</button>
+                            <button type="submit" class="btn btn-success">Concluir</button>
+                        </form>
+                    {% endif %}
+                    {% if not orcamento.cliente %}
+                        <form
+                            method="post"
+                            action="{% url 'cadastrar_cliente_orcamento' orcamento.pk %}"
+                            class="m-0"
+                            data-hf-confirm
+                            data-hf-confirm-icon="question"
+                            data-hf-confirm-title="Cadastrar cliente?"
+                            data-hf-confirm-text="Os dados deste orçamento serão usados para criar ou atualizar o cadastro do cliente."
+                            data-hf-confirm-button="Cadastrar"
+                        >
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-success">Cadastrar cliente</button>
                         </form>
                     {% endif %}
                     <a class="btn btn-primary" href="{% url 'gerar_orcamento_pdf' orcamento.pk %}">Gerar PDF</a>
-                    <a class="btn btn-outline-secondary" href="{% url 'novo_orcamento' %}">Criar outro orcamento</a>
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">Excluir orcamento</button>
+                    </form>
                 </div>
             </div>
         </aside>
