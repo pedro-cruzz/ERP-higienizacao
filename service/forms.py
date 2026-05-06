@@ -1,6 +1,6 @@
 from django import forms
 
-from service.models import CategoriaCatalogo, Cliente, Service_catalog
+from service.models import CategoriaCatalogo, Cliente, Orcamento, Service_catalog
 
 
 class CategoriaCatalogoForm(forms.ModelForm):
@@ -99,6 +99,14 @@ class ProdutoCatalogoForm(forms.ModelForm):
 
 
 class ClienteForm(forms.ModelForm):
+    orcamento_origem = forms.ModelChoiceField(
+        label="Puxar dados de um orcamento",
+        queryset=Orcamento.objects.none(),
+        required=False,
+        empty_label="Preencher manualmente ou selecionar orcamento",
+        widget=forms.Select(),
+    )
+
     class Meta:
         model = Cliente
         fields = [
@@ -116,7 +124,7 @@ class ClienteForm(forms.ModelForm):
             "status",
         ]
         labels = {
-            "name": "Nome do lead",
+            "name": "Nome do cliente",
             "email": "Email",
             "telefone": "Telefone",
             "cep": "CEP",
@@ -144,7 +152,17 @@ class ClienteForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        if args and args[0] is not None:
+            args = (self._data_com_orcamento(args[0]), *args[1:])
+        elif kwargs.get("data") is not None:
+            kwargs["data"] = self._data_com_orcamento(kwargs["data"])
+
         super().__init__(*args, **kwargs)
+        self.fields["orcamento_origem"].queryset = Orcamento.objects.filter(cliente__isnull=True).order_by(
+            "-created_at", "-id"
+        )
+        self.fields["orcamento_origem"].label_from_instance = self._orcamento_label
+        self.fields["orcamento_origem"].widget.attrs["class"] = "form-select"
         for field_name in [
             "telefone",
             "cep",
@@ -163,6 +181,43 @@ class ClienteForm(forms.ModelForm):
                 field.widget.attrs["class"] = "form-select"
             elif name != "endereco":
                 field.widget.attrs["class"] = "form-control text-uppercase" if name == "uf" else "form-control"
+
+    @staticmethod
+    def _orcamento_label(orcamento: Orcamento) -> str:
+        contato = orcamento.email or orcamento.telefone or "sem contato"
+        return f"#{orcamento.pk} - {orcamento.name} ({contato})"
+
+    @staticmethod
+    def _data_com_orcamento(data):
+        mutable_data = data.copy()
+        orcamento_id = mutable_data.get("orcamento_origem")
+        if not orcamento_id:
+            return mutable_data
+
+        orcamento = Orcamento.objects.filter(pk=orcamento_id, cliente__isnull=True).first()
+        if not orcamento:
+            return mutable_data
+
+        for field_name in [
+            "name",
+            "email",
+            "telefone",
+            "cep",
+            "logradouro",
+            "numero",
+            "complemento",
+            "bairro",
+            "cidade",
+            "uf",
+            "endereco",
+        ]:
+            if not mutable_data.get(field_name):
+                mutable_data[field_name] = getattr(orcamento, field_name, None) or ""
+
+        if not mutable_data.get("status"):
+            mutable_data["status"] = Cliente.Status.CONVERTIDO
+
+        return mutable_data
 
     def clean(self):
         cleaned_data = super().clean()

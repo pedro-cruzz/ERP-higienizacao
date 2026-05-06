@@ -4,11 +4,21 @@
 
 {% block content %}
     <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
-        <span class="badge rounded-pill px-3 py-2 mb-3">Clientes</span>
-        <h1 class="display-6 fw-semibold">Cadastros de clientes gerados pelos orcamentos aprovados.</h1>
-        <p class="mb-0 text-white-50">
-            Consulte contatos, busque por nome ou email e acompanhe quem ja entrou para a base.
-        </p>
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div>
+                <span class="badge rounded-pill px-3 py-2 mb-3">Clientes</span>
+                <h1 class="display-6 fw-semibold">Cadastros de clientes.</h1>
+                <p class="mb-0 text-white-50">
+                    Consulte contatos, busque por nome ou email e acompanhe quem ja entrou para a base.
+                </p>
+            </div>
+            <div class="align-self-lg-start">
+                <a href="{% url 'novo_cliente' %}" class="btn btn-light btn-lg">
+                    <i class="bi bi-person-plus"></i>
+                    Novo cliente
+                </a>
+            </div>
+        </div>
     </section>
 
     <section class="content-card p-4 mb-4">
@@ -50,19 +60,22 @@
                                 <td>{{ cliente.get_status_display }}</td>
                                 <td>{{ cliente.orcamentos.count }}</td>
                                 <td class="text-end">
-                                    <form
-                                        method="post"
-                                        action="{% url 'deletar_cliente' cliente.pk %}"
-                                        class="m-0"
-                                        data-hf-confirm
-                                        data-hf-confirm-icon="warning"
-                                        data-hf-confirm-title="Excluir cliente?"
-                                        data-hf-confirm-text="Esta ação remove o cliente da base, mas mantém os orçamentos vinculados no histórico."
-                                        data-hf-confirm-button="Excluir"
-                                    >
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
-                                    </form>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="{% url 'editar_cliente' cliente.pk %}" class="btn btn-outline-primary btn-sm">Editar</a>
+                                        <form
+                                            method="post"
+                                            action="{% url 'deletar_cliente' cliente.pk %}"
+                                            class="m-0"
+                                            data-hf-confirm
+                                            data-hf-confirm-icon="warning"
+                                            data-hf-confirm-title="Excluir cliente?"
+                                            data-hf-confirm-text="Esta acao remove o cliente da base, mas mantem os orcamentos vinculados no historico."
+                                            data-hf-confirm-button="Excluir"
+                                        >
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -71,7 +84,8 @@
             </div>
         {% else %}
             <div class="empty-state text-center p-5">
-                Nenhum cliente cadastrado ainda. Eles aparecerao aqui quando um orcamento for aprovado.
+                Nenhum cliente cadastrado ainda.
+                <a href="{% url 'novo_cliente' %}" class="fw-semibold">Cadastrar cliente</a>
             </div>
         {% endif %}
     </section>

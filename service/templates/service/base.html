@@ -50,7 +50,7 @@
                     <i class="bi bi-calendar3"></i>
                     <span>Agenda</span>
                 </a>
-                <a href="{% url 'clientes' %}" class="hf-nav-link{% if request.resolver_match.url_name == 'clientes' %} active{% endif %}">
+                <a href="{% url 'clientes' %}" class="hf-nav-link{% if request.resolver_match.url_name == 'clientes' or request.resolver_match.url_name == 'novo_cliente' or request.resolver_match.url_name == 'editar_cliente' %} active{% endif %}">
                     <i class="bi bi-person-circle"></i>
                     <span>Clientes</span>
                 </a>

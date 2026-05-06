@@ -4,7 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from service.forms import CategoriaCatalogoForm, ClienteForm
-from service.models import CategoriaCatalogo, Cliente, Service_catalog
+from service.models import CategoriaCatalogo, Cliente, Orcamento, Service_catalog
 
 
 def _lead_status_class(status: str) -> str:
@@ -154,6 +154,93 @@ def listar_leads(request: HttpRequest) -> HttpResponse:
         "total_leads": clientes.count() if busca or Cliente.objects.exists() else len(leads),
     }
     return render(request, "service/leads.html", context)
+
+
+def _cliente_initial_orcamento(orcamento: Orcamento) -> dict:
+    return {
+        "orcamento_origem": orcamento.pk,
+        "name": orcamento.name,
+        "email": orcamento.email,
+        "telefone": orcamento.telefone,
+        "cep": orcamento.cep,
+        "logradouro": orcamento.logradouro,
+        "numero": orcamento.numero,
+        "complemento": orcamento.complemento,
+        "bairro": orcamento.bairro,
+        "cidade": orcamento.cidade,
+        "uf": orcamento.uf,
+        "endereco": orcamento.endereco,
+        "status": Cliente.Status.CONVERTIDO,
+    }
+
+
+def _orcamentos_origem_cliente():
+    orcamentos = Orcamento.objects.filter(cliente__isnull=True).order_by("-created_at", "-id")[:50]
+    return [
+        {
+            "id": orcamento.pk,
+            "name": orcamento.name,
+            "email": orcamento.email or "",
+            "telefone": orcamento.telefone or "",
+            "cep": orcamento.cep or "",
+            "logradouro": orcamento.logradouro or "",
+            "numero": orcamento.numero or "",
+            "complemento": orcamento.complemento or "",
+            "bairro": orcamento.bairro or "",
+            "cidade": orcamento.cidade or "",
+            "uf": orcamento.uf or "",
+            "endereco": orcamento.endereco or "",
+            "status": Cliente.Status.CONVERTIDO,
+        }
+        for orcamento in orcamentos
+    ]
+
+
+def novo_cliente(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            cliente = form.save()
+            orcamento = form.cleaned_data.get("orcamento_origem")
+            if orcamento:
+                orcamento.cliente = cliente
+                orcamento.save(update_fields=["cliente", "updated_at"])
+            messages.success(request, f"Cliente '{cliente.name}' cadastrado com sucesso.")
+            return redirect("clientes")
+    else:
+        orcamento_id = request.GET.get("orcamento") or request.GET.get("orcamento_origem")
+        orcamento = Orcamento.objects.filter(pk=orcamento_id, cliente__isnull=True).first() if orcamento_id else None
+        form = ClienteForm(initial=_cliente_initial_orcamento(orcamento) if orcamento else None)
+
+    context = {
+        "form": form,
+        "clientes_recentes": Cliente.objects.order_by("-created_at", "-id")[:5],
+        "orcamentos_origem": _orcamentos_origem_cliente(),
+        "is_edit": False,
+    }
+    return render(request, "service/cliente_form.html", context)
+
+
+def editar_cliente(request: HttpRequest, pk: int) -> HttpResponse:
+    cliente = get_object_or_404(Cliente, pk=pk)
+
+    if request.method == "POST":
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            cliente = form.save()
+            messages.success(request, f"Cliente '{cliente.name}' atualizado com sucesso.")
+            return redirect("clientes")
+    else:
+        form = ClienteForm(instance=cliente)
+
+    context = {
+        "form": form,
+        "cliente": cliente,
+        "clientes_recentes": Cliente.objects.exclude(pk=pk).order_by("-created_at", "-id")[:5],
+        "orcamentos_origem": [],
+        "is_edit": True,
+    }
+    return render(request, "service/cliente_form.html", context)
 
 
 def novo_lead(request: HttpRequest) -> HttpResponse:

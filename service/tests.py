@@ -111,6 +111,108 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(cliente.uf, "SP")
         self.assertIn("Praca da Se, 200", cliente.endereco)
 
+    def test_cria_cliente(self):
+        response = self.client.post(
+            reverse("novo_cliente"),
+            {
+                "name": "Cliente Novo",
+                "email": "cliente-novo@teste.com",
+                "telefone": "11944445555",
+                "cep": "01001-000",
+                "logradouro": "Praca da Se",
+                "numero": "300",
+                "bairro": "Se",
+                "cidade": "Sao Paulo",
+                "uf": "sp",
+                "status": Cliente.Status.CONTATADO,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        cliente = Cliente.objects.get(email="cliente-novo@teste.com")
+        self.assertEqual(cliente.name, "Cliente Novo")
+        self.assertEqual(cliente.uf, "SP")
+        self.assertIn("Praca da Se, 300", cliente.endereco)
+
+    def test_cria_cliente_puxando_dados_do_orcamento(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente do Orcamento",
+            email="origem@teste.com",
+            telefone="11988889999",
+            cep="37502-118",
+            logradouro="Rua Orlando Mohallen",
+            numero="298",
+            bairro="Medicina",
+            cidade="Itajuba",
+            uf="mg",
+            endereco="Rua Orlando Mohallen, 298 | Medicina | Itajuba - MG",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+
+        response = self.client.post(
+            reverse("novo_cliente"),
+            {
+                "orcamento_origem": orcamento.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        cliente = Cliente.objects.get(email="origem@teste.com")
+        self.assertEqual(cliente.name, "Cliente do Orcamento")
+        self.assertEqual(cliente.telefone, "11988889999")
+        self.assertEqual(cliente.status, Cliente.Status.CONVERTIDO)
+        self.assertEqual(cliente.uf, "MG")
+
+        orcamento.refresh_from_db()
+        self.assertEqual(orcamento.cliente, cliente)
+
+    def test_form_cliente_exibe_opcao_de_orcamento(self):
+        Orcamento.objects.create(
+            name="Cliente Origem Form",
+            email="form@teste.com",
+            quantidade=1,
+            valor=120.0,
+        ).itens.set([self.item_a])
+
+        response = self.client.get(reverse("novo_cliente"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Puxar dados de um orcamento")
+        self.assertContains(response, "Cliente Origem Form")
+
+    def test_edita_cliente(self):
+        cliente = Cliente.objects.create(
+            name="Cliente Antigo",
+            email="antigo@teste.com",
+            telefone="11955556666",
+            status=Cliente.Status.NOVO,
+        )
+
+        response = self.client.post(
+            reverse("editar_cliente", args=[cliente.pk]),
+            {
+                "name": "Cliente Atualizado",
+                "email": "atualizado@teste.com",
+                "telefone": "11977778888",
+                "cep": "37502-118",
+                "logradouro": "Rua Orlando Mohallen",
+                "numero": "298",
+                "bairro": "Medicina",
+                "cidade": "Itajuba",
+                "uf": "mg",
+                "status": Cliente.Status.CONVERTIDO,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        cliente.refresh_from_db()
+        self.assertEqual(cliente.name, "Cliente Atualizado")
+        self.assertEqual(cliente.email, "atualizado@teste.com")
+        self.assertEqual(cliente.status, Cliente.Status.CONVERTIDO)
+        self.assertEqual(cliente.uf, "MG")
+
     def test_lista_orcamentos_retorna_ok(self):
         orcamento = Orcamento.objects.create(
             name="Cliente Lista",

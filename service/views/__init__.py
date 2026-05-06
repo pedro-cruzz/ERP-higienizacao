@@ -1,9 +1,11 @@
 from service.views.catalogo import (
     catalogo,
     deletar_cliente,
+    editar_cliente,
     listar_clientes,
     listar_leads,
     nova_categoria,
+    novo_cliente,
     novo_lead,
 )
 from service.views.comum import inicio, teste
@@ -36,6 +38,7 @@ __all__ = [
     "deletar_orcamento",
     "deletar_produto",
     "detalhe_orcamento",
+    "editar_cliente",
     "editar_orcamento",
     "editar_produto",
     "gerar_orcamento_pdf",
@@ -44,6 +47,7 @@ __all__ = [
     "listar_leads",
     "listar_orcamentos",
     "nova_categoria",
+    "novo_cliente",
     "novo_lead",
     "novo_orcamento",
     "novo_produto",
