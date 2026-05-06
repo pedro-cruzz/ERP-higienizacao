@@ -58,6 +58,7 @@ body.higiflow-app {
     color: #fff;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     font-weight: 700;
+    letter-spacing: 0;
 }
 
 .hf-brand small {
@@ -222,7 +223,51 @@ body.higiflow-app {
     margin-bottom: 24px;
 }
 
-.page-heading {
+.hf-swal-popup {
+    border-radius: 14px;
+    color: var(--hf-text);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.hf-swal-title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.hf-swal-text {
+    color: var(--hf-muted) !important;
+    font-size: 15px !important;
+    line-height: 24px !important;
+}
+
+.hf-swal-actions {
+    gap: 10px;
+}
+
+.hf-swal-confirm,
+.hf-swal-cancel {
+    min-height: 40px;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 500;
+    line-height: 22px;
+}
+
+.hf-swal-confirm {
+    border: 1px solid var(--hf-blue);
+    color: #fff;
+    background: var(--hf-blue);
+}
+
+.hf-swal-cancel {
+    border: 1px solid var(--hf-border);
+    color: var(--hf-text);
+    background: #fff;
+}
+
+.page-heading,
+.dashboard-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -230,17 +275,24 @@ body.higiflow-app {
     margin-bottom: 24px;
 }
 
-.page-heading h1 {
+.page-heading h1,
+.dashboard-heading h1 {
     margin: 0;
     font-size: 24px;
     font-weight: 500;
     line-height: 36px;
 }
 
-.page-heading p {
+.page-heading p,
+.dashboard-heading p {
     margin: 4px 0 0;
     color: var(--hf-muted);
     line-height: 24px;
+}
+
+.dashboard-actions {
+    display: flex;
+    gap: 12px;
 }
 
 .hf-btn {
@@ -256,21 +308,16 @@ body.higiflow-app {
     text-decoration: none;
 }
 
-.hf-btn-primary {
-    color: #fff;
-    background: var(--hf-blue);
-    border: 1px solid var(--hf-blue);
-}
-
 .hf-btn-light {
     color: var(--hf-text);
     background: #fff;
     border: 1px solid var(--hf-border);
 }
 
-.dashboard-actions {
-    display: flex;
-    gap: 12px;
+.hf-btn-primary {
+    color: #fff;
+    background: var(--hf-blue);
+    border: 1px solid var(--hf-blue);
 }
 
 .metric-grid {
@@ -281,7 +328,8 @@ body.higiflow-app {
 }
 
 .metric-card,
-.dashboard-card {
+.dashboard-card,
+.leads-panel {
     background: var(--hf-card);
     border: 1px solid var(--hf-border);
     border-radius: 14px;
@@ -377,6 +425,17 @@ body.higiflow-app {
     gap: 16px;
 }
 
+.empty-dashboard-state {
+    min-height: 198px;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--hf-border);
+    border-radius: 12px;
+    color: var(--hf-muted);
+    background: #fff;
+    text-align: center;
+}
+
 .recent-row {
     min-height: 69px;
     justify-content: space-between;
@@ -418,14 +477,6 @@ body.higiflow-app {
 
 .leads-panel {
     overflow: hidden;
-    background: var(--hf-card);
-    border: 1px solid var(--hf-border);
-    border-radius: 14px;
-}
-
-.leads-panel,
-.leads-panel * {
-    box-sizing: border-box;
 }
 
 .leads-toolbar {
@@ -544,36 +595,36 @@ body.higiflow-app {
 
 .status-pill {
     min-height: 24px;
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     border-radius: 999px;
     padding: 4px 10px;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 12px !important;
+    line-height: 16px !important;
 }
 
 .status-blue {
-    color: #1447e6;
+    color: #1447e6 !important;
     background: #dbeafe;
 }
 
+.status-soft-blue {
+    color: #2664eb !important;
+    background: #eff6ff;
+}
+
 .status-yellow {
-    color: #a65f00;
+    color: #a65f00 !important;
     background: #fef9c2;
 }
 
 .status-gray {
-    color: #364153;
+    color: #364153 !important;
     background: #f3f4f6;
 }
 
-.status-soft-blue {
-    color: #2664eb;
-    background: #eff6ff;
-}
-
 .status-purple {
-    color: #8200db;
+    color: #8200db !important;
     background: #f3e8ff;
 }
 
@@ -662,6 +713,29 @@ body.higiflow-app {
     margin-top: 0.75rem;
 }
 
+.check-grid ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.check-grid li label {
+    width: 100%;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--hf-border);
+    background: #fff;
+}
+
+.check-grid input {
+    margin-top: 0;
+}
+
 .hero-card,
 .content-card,
 .section-card,
@@ -720,28 +794,26 @@ body.higiflow-app {
         justify-content: space-between;
     }
 
-    .page-heading {
+    .page-heading,
+    .dashboard-heading {
         align-items: stretch;
         flex-direction: column;
     }
 
+    .dashboard-actions,
     .hf-btn,
     .leads-search,
     .filter-button {
         width: 100%;
     }
 
-    .dashboard-actions {
-        width: 100%;
+    .dashboard-actions,
+    .leads-toolbar {
+        align-items: stretch;
         flex-direction: column;
     }
 
     .metric-grid {
         grid-template-columns: 1fr;
-    }
-
-    .leads-toolbar {
-        align-items: stretch;
-        flex-direction: column;
     }
 }

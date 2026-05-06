@@ -1,8 +1,19 @@
+from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
+from service.forms import ClienteForm
 from service.models import Cliente, Service_catalog
+
+
+def _lead_status_class(status: str) -> str:
+    return {
+        Cliente.Status.NOVO: "status-blue",
+        Cliente.Status.CONTATADO: "status-yellow",
+        Cliente.Status.AGUARDANDO: "status-gray",
+        Cliente.Status.CONVERTIDO: "status-soft-blue",
+    }.get(status, "status-gray")
 
 
 def catalogo(request: HttpRequest) -> HttpResponse:
@@ -33,6 +44,7 @@ def listar_clientes(request: HttpRequest) -> HttpResponse:
             Q(name__icontains=busca)
             | Q(email__icontains=busca)
             | Q(telefone__icontains=busca)
+            | Q(status__icontains=busca)
         )
 
     context = {
@@ -45,34 +57,27 @@ def listar_clientes(request: HttpRequest) -> HttpResponse:
 
 def listar_leads(request: HttpRequest) -> HttpResponse:
     busca = request.GET.get("q", "").strip()
-    clientes = Cliente.objects.order_by("-id")
+    clientes = Cliente.objects.order_by("-created_at", "-id")
 
     if busca:
         clientes = clientes.filter(
             Q(name__icontains=busca)
             | Q(email__icontains=busca)
             | Q(telefone__icontains=busca)
+            | Q(status__icontains=busca)
         )
 
-    status_cycle = [
-        ("Novo", "status-blue"),
-        ("Contatado", "status-yellow"),
-        ("Aguardando", "status-gray"),
-    ]
     origem_cycle = ["WhatsApp", "Instagram", "Indicação"]
-    date_cycle = ["29/04/2026", "28/04/2026", "28/04/2026"]
-
     leads = []
     for index, cliente in enumerate(clientes[:5]):
-        status, status_class = status_cycle[index % len(status_cycle)]
         leads.append(
             {
                 "name": cliente.name,
                 "telefone": cliente.telefone or cliente.email or "-",
-                "status": status,
-                "status_class": status_class,
+                "status": cliente.get_status_display(),
+                "status_class": _lead_status_class(cliente.status),
                 "origem": origem_cycle[index % len(origem_cycle)],
-                "data": date_cycle[index % len(date_cycle)],
+                "data": cliente.created_at.strftime("%d/%m/%Y"),
             }
         )
 
@@ -126,3 +131,32 @@ def listar_leads(request: HttpRequest) -> HttpResponse:
         "total_leads": clientes.count() if busca or Cliente.objects.exists() else len(leads),
     }
     return render(request, "service/leads.html", context)
+
+
+def novo_lead(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            lead = form.save()
+            messages.success(request, f"Lead '{lead.name}' cadastrado com sucesso.")
+            return redirect("leads")
+    else:
+        form = ClienteForm()
+
+    context = {
+        "form": form,
+        "leads_recentes": Cliente.objects.order_by("-created_at", "-id")[:5],
+    }
+    return render(request, "service/lead_form.html", context)
+
+
+def deletar_cliente(request: HttpRequest, pk: int) -> HttpResponse:
+    if request.method != "POST":
+        return redirect("clientes")
+
+    cliente = get_object_or_404(Cliente, pk=pk)
+    nome = cliente.name
+    cliente.delete()
+
+    messages.success(request, f"Cliente '{nome}' excluido com sucesso.")
+    return redirect("clientes")

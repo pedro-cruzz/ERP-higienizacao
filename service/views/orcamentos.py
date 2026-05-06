@@ -2,6 +2,7 @@ import textwrap
 from io import BytesIO
 
 from django.contrib import messages
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -11,6 +12,59 @@ from reportlab.pdfgen import canvas
 
 from service.forms import OrcamentoForm
 from service.models import Cliente, Orcamento
+
+
+def _criar_ou_atualizar_cliente_do_orcamento(orcamento: Orcamento) -> Cliente:
+    cliente = Cliente.objects.filter(email=orcamento.email).first()
+    if cliente is None:
+        return Cliente.objects.create(
+            name=orcamento.name,
+            email=orcamento.email,
+            telefone=orcamento.telefone,
+            endereco=orcamento.endereco,
+            cep=orcamento.cep,
+            logradouro=orcamento.logradouro,
+            numero=orcamento.numero,
+            complemento=orcamento.complemento,
+            bairro=orcamento.bairro,
+            cidade=orcamento.cidade,
+            uf=orcamento.uf,
+            status=Cliente.Status.CONVERTIDO,
+        )
+
+    cliente.name = orcamento.name
+    cliente.telefone = orcamento.telefone
+    cliente.endereco = orcamento.endereco
+    cliente.cep = orcamento.cep
+    cliente.logradouro = orcamento.logradouro
+    cliente.numero = orcamento.numero
+    cliente.complemento = orcamento.complemento
+    cliente.bairro = orcamento.bairro
+    cliente.cidade = orcamento.cidade
+    cliente.uf = orcamento.uf
+    cliente.status = Cliente.Status.CONVERTIDO
+    cliente.save()
+    return cliente
+
+
+def listar_orcamentos(request: HttpRequest) -> HttpResponse:
+    busca = request.GET.get("q", "").strip()
+    orcamentos = Orcamento.objects.prefetch_related("itens", "cliente").order_by("-created_at", "-id")
+
+    if busca:
+        orcamentos = orcamentos.filter(
+            Q(name__icontains=busca)
+            | Q(email__icontains=busca)
+            | Q(telefone__icontains=busca)
+            | Q(descricao__icontains=busca)
+        )
+
+    context = {
+        "busca": busca,
+        "orcamentos": orcamentos,
+        "total_orcamentos": orcamentos.count(),
+    }
+    return render(request, "service/orcamentos.html", context)
 
 
 def novo_orcamento(request: HttpRequest) -> HttpResponse:
@@ -56,6 +110,57 @@ def detalhe_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "service/orcamento_detalhe.html", context)
 
 
+def deletar_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
+    if request.method != "POST":
+        return redirect("orcamento_detalhe", pk=pk)
+
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    nome = orcamento.name
+    orcamento.delete()
+
+    messages.success(request, f"Orcamento de '{nome}' excluido com sucesso.")
+    return redirect("orcamentos")
+
+
+def concluir_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
+    if request.method != "POST":
+        return redirect("orcamento_detalhe", pk=pk)
+
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    if not orcamento.aprovado:
+        orcamento.aprovado = True
+        orcamento.save(update_fields=["aprovado", "updated_at"])
+        messages.success(request, "Orcamento concluido com sucesso.")
+    else:
+        messages.info(request, "Este orcamento ja esta concluido.")
+
+    return redirect("orcamento_detalhe", pk=pk)
+
+
+def cadastrar_cliente_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
+    if request.method != "POST":
+        return redirect("orcamento_detalhe", pk=pk)
+
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+
+    if not orcamento.email:
+        messages.error(
+            request,
+            "Este orcamento precisa de um email para criar o cadastro do cliente.",
+        )
+        return redirect("orcamento_detalhe", pk=pk)
+
+    cliente = _criar_ou_atualizar_cliente_do_orcamento(orcamento)
+    orcamento.cliente = cliente
+    orcamento.save(update_fields=["cliente", "updated_at"])
+
+    messages.success(
+        request,
+        "Cliente cadastrado e vinculado ao orcamento com sucesso.",
+    )
+    return redirect("orcamento_detalhe", pk=pk)
+
+
 def aprovar_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method != "POST":
         return redirect("orcamento_detalhe", pk=pk)
@@ -69,27 +174,14 @@ def aprovar_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
         )
         return redirect("orcamento_detalhe", pk=pk)
 
-    cliente = Cliente.objects.filter(email=orcamento.email).first()
-    if cliente is None:
-        cliente = Cliente.objects.create(
-            name=orcamento.name,
-            email=orcamento.email,
-            telefone=orcamento.telefone,
-            endereco=orcamento.endereco,
-        )
-    else:
-        cliente.name = orcamento.name
-        cliente.telefone = orcamento.telefone
-        cliente.endereco = orcamento.endereco
-        cliente.save()
-
+    cliente = _criar_ou_atualizar_cliente_do_orcamento(orcamento)
     orcamento.cliente = cliente
     orcamento.aprovado = True
-    orcamento.save(update_fields=["cliente", "aprovado"])
+    orcamento.save(update_fields=["cliente", "aprovado", "updated_at"])
 
     messages.success(
         request,
-        "Orcamento aprovado e cliente vinculado com sucesso.",
+        "Orcamento concluido e cliente vinculado com sucesso.",
     )
     return redirect("orcamento_detalhe", pk=pk)
 
