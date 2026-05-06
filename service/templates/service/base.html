@@ -85,16 +85,15 @@
 
             <main class="hf-content">
                 {% if messages %}
-                    <script>
-                        window.hfPendingAlerts = [
-                            {% for message in messages %}
-                                {
-                                    tag: "{{ message.tags|default:'success'|escapejs }}",
-                                    text: "{{ message|escapejs }}",
-                                },
-                            {% endfor %}
-                        ];
-                    </script>
+                    <div id="hf-pending-alerts" hidden>
+                        {% for message in messages %}
+                            <span
+                                data-hf-alert-message
+                                data-tag="{{ message.tags|default:'success' }}"
+                                data-text="{{ message }}"
+                            ></span>
+                        {% endfor %}
+                    </div>
                 {% endif %}
 
                 {% block content %}{% endblock %}
@@ -159,8 +158,11 @@
                     return;
                 }
 
-                (window.hfPendingAlerts || []).forEach((message) => {
-                    window.hfAlert(message);
+                document.querySelectorAll("[data-hf-alert-message]").forEach((message) => {
+                    window.hfAlert({
+                        tag: message.dataset.tag || "success",
+                        text: message.dataset.text || "",
+                    });
                 });
 
                 document.addEventListener("submit", (event) => {
