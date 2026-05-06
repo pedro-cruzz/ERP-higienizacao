@@ -63,6 +63,9 @@
                     <div class="small muted-copy">{{ orcamento.email|default:"Sem email" }}</div>
                     <div class="small muted-copy">{{ orcamento.telefone|default:"Sem telefone" }}</div>
                     <div class="small muted-copy">{{ orcamento.endereco|default:"Sem endereco" }}</div>
+                    {% if orcamento.cep %}
+                        <div class="small muted-copy">CEP: {{ orcamento.cep }}</div>
+                    {% endif %}
                 </div>
                 {% if orcamento.cliente %}
                     <div class="mini-stat p-3 mt-3">

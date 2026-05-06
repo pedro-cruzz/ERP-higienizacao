@@ -1,55 +1,154 @@
 {% extends "service/base.html" %}
 
-{% block title %}Catalogo | ERP Higienizacao{% endblock %}
+{% block title %}Catalogo | HigiFlow{% endblock %}
 
 {% block content %}
-    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
-        <span class="badge rounded-pill px-3 py-2 mb-3">Catalogo de produtos</span>
-        <h1 class="display-6 fw-semibold">Seus itens ja cadastrados, organizados para consulta rapida.</h1>
-        <p class="mb-0 text-white-50">
-            Use esta primeira tela para navegar pelo catalogo, conferir descricao,
-            tipo e valor base de cada item antes de montar um orcamento.
-        </p>
+    <section class="page-heading">
+        <div>
+            <h1>Catalogo</h1>
+            <p>Servicos, produtos e itens usados para montar orcamentos rapidamente.</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'nova_categoria' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-tags"></i>
+                <span>Nova categoria</span>
+            </a>
+            <a href="{% url 'novo_produto' %}" class="hf-btn hf-btn-primary">
+                <i class="bi bi-plus-lg"></i>
+                <span>Novo item</span>
+            </a>
+            <a href="{% url 'novo_orcamento' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>Novo orcamento</span>
+            </a>
+        </div>
     </section>
 
-    <section class="content-card p-4 mb-4">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-12 col-lg-8">
-                <label for="q" class="form-label fw-semibold">Buscar no catalogo</label>
-                <input id="q" name="q" value="{{ busca }}" placeholder="Nome, tipo ou descricao" class="form-control form-control-lg">
+    <section class="metric-grid catalog-metrics" aria-label="Indicadores do catalogo">
+        <article class="metric-card">
+            <div>
+                <p>Itens cadastrados</p>
+                <strong>{{ total_itens }}</strong>
+                <span><i class="bi bi-box-seam"></i> disponiveis</span>
             </div>
-            <div class="col-12 col-lg-4">
-                <button type="submit" class="btn btn-success btn-lg w-100">Buscar</button>
+            <span class="metric-icon"><i class="bi bi-grid"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Categorias</p>
+                <strong>{{ total_categorias }}</strong>
+                <span><i class="bi bi-tags"></i> tipos de servico</span>
             </div>
+            <span class="metric-icon"><i class="bi bi-layers"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Valor medio</p>
+                <strong>R$ {{ valor_medio|floatformat:0 }}</strong>
+                <span><i class="bi bi-cash-stack"></i> base de calculo</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Uso no orcamento</p>
+                <strong>Auto</strong>
+                <span><i class="bi bi-lightning-charge"></i> item pre-selecionado</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-magic"></i></span>
+        </article>
+    </section>
+
+    <section class="catalog-toolbar">
+        <form method="get" class="catalog-search">
+            <i class="bi bi-search"></i>
+            <input id="q" name="q" value="{{ busca }}" placeholder="Buscar por sofa, tapete, tecido ou descricao" aria-label="Buscar no catalogo">
         </form>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-            <a href="{% url 'novo_produto' %}" class="btn btn-success">Cadastrar produto</a>
-            <a href="{% url 'novo_orcamento' %}" class="btn btn-outline-secondary">Criar orcamento</a>
+
+        <div class="catalog-filter-list" aria-label="Categorias cadastradas">
+            {% if categorias %}
+                {% for categoria in categorias %}
+                    <span class="status-pill status-soft-blue">{{ categoria.name }} · {{ categoria.total }}</span>
+                {% endfor %}
+            {% else %}
+                <span class="status-pill status-gray">Sem categorias</span>
+            {% endif %}
         </div>
-        <p class="muted-copy mt-3 mb-0">Total encontrado: {{ total_itens }} item(ns).</p>
     </section>
 
     {% if itens %}
-        <section class="row g-4">
+        <section class="catalog-grid" aria-label="Itens do catalogo">
             {% for item in itens %}
-                <div class="col-12 col-md-6 col-xl-4">
-                    <article class="product-card h-100 p-4">
-                        <span class="badge text-bg-light border text-dark rounded-pill px-3 py-2">{{ item.tipo|default:"Sem tipo" }}</span>
-                        <h2 class="h4 mt-3">{{ item.name }}</h2>
-                        <p class="muted-copy mb-3">{{ item.descricao|default:"Sem descricao cadastrada." }}</p>
-                        <p class="price-tag mb-3">R$ {{ item.valor|floatformat:2 }}</p>
-                        <ul class="list-clean small muted-copy">
-                            <li><strong class="text-dark">Tempo:</strong> {{ item.tempo|default:"Nao informado" }}</li>
-                            <li><strong class="text-dark">Formato:</strong> {{ item.formato|default:"Nao informado" }}</li>
-                            <li><strong class="text-dark">Tecido:</strong> {{ item.tecido|default:"Nao informado" }}</li>
-                        </ul>
-                    </article>
-                </div>
+                <article class="catalog-card">
+                    <header>
+                        <span class="status-pill status-soft-blue">{{ item.categoria_nome|default:"Servico" }}</span>
+                        <strong>R$ {{ item.valor|floatformat:2 }}</strong>
+                    </header>
+
+                    <div class="catalog-card-body">
+                        <h2>{{ item.name }}</h2>
+                        <p>{{ item.descricao|default:"Sem descricao cadastrada." }}</p>
+                    </div>
+
+                    <dl class="catalog-specs">
+                        <div>
+                            <dt>Tempo</dt>
+                            <dd>{{ item.tempo|default:"Nao informado" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Formato</dt>
+                            <dd>{{ item.formato|default:"Nao informado" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Tamanho</dt>
+                            <dd>{{ item.tamanho|default:"Nao informado" }}</dd>
+                        </div>
+                        <div>
+                            <dt>Material</dt>
+                            <dd>{{ item.tecido|default:"Nao informado" }}</dd>
+                        </div>
+                    </dl>
+
+                    <footer class="catalog-card-actions">
+                        <a href="{% url 'novo_orcamento' %}?item={{ item.pk }}" class="hf-btn hf-btn-primary">
+                            <i class="bi bi-file-earmark-plus"></i>
+                            <span>Orcar item</span>
+                        </a>
+                        <a href="{% url 'editar_produto' item.pk %}" class="hf-btn hf-btn-light">
+                            <i class="bi bi-pencil"></i>
+                            <span>Editar</span>
+                        </a>
+                        <form
+                            method="post"
+                            action="{% url 'deletar_produto' item.pk %}"
+                            data-hf-confirm
+                            data-hf-confirm-icon="warning"
+                            data-hf-confirm-title="Excluir item?"
+                            data-hf-confirm-text="Este item sera removido do catalogo e deixara de aparecer em novos orcamentos."
+                            data-hf-confirm-button="Excluir"
+                        >
+                            {% csrf_token %}
+                            <button type="submit" class="hf-btn hf-btn-light catalog-danger-btn">
+                                <i class="bi bi-trash"></i>
+                                <span>Excluir</span>
+                            </button>
+                        </form>
+                    </footer>
+                </article>
             {% endfor %}
         </section>
     {% else %}
-        <section class="empty-state text-center p-5">
-            Nenhum item encontrado no catalogo ainda. Cadastre alguns produtos pela tela de cadastro ou ajuste sua busca.
+        <section class="empty-state catalog-empty">
+            <i class="bi bi-inboxes"></i>
+            <strong>Nenhum item encontrado</strong>
+            <span>Cadastre o primeiro servico, como sofa retratil, tapete ou colchao, para usar nos orcamentos.</span>
+            <div class="dashboard-actions">
+                <a href="{% url 'nova_categoria' %}" class="hf-btn hf-btn-light">Cadastrar categoria</a>
+                <a href="{% url 'novo_produto' %}" class="hf-btn hf-btn-primary">Cadastrar item</a>
+            </div>
         </section>
     {% endif %}
 {% endblock %}

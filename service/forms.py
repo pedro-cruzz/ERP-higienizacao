@@ -1,6 +1,28 @@
 from django import forms
 
-from service.models import Cliente, Service_catalog
+from service.models import CategoriaCatalogo, Cliente, Service_catalog
+
+
+class CategoriaCatalogoForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaCatalogo
+        fields = ["name", "descricao"]
+        labels = {
+            "name": "Nome da categoria",
+            "descricao": "Descricao",
+        }
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Ex.: Sofas"}),
+            "descricao": forms.Textarea(
+                attrs={"rows": 4, "placeholder": "Ex.: Itens de higienizacao para sofas, poltronas e chaises."}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["descricao"].required = False
+        for field in self.fields.values():
+            field.widget.attrs["class"] = "form-control"
 
 
 class ProdutoCatalogoForm(forms.ModelForm):
@@ -8,7 +30,7 @@ class ProdutoCatalogoForm(forms.ModelForm):
         model = Service_catalog
         fields = [
             "name",
-            "tipo",
+            "categoria",
             "valor",
             "descricao",
             "tempo",
@@ -19,36 +41,36 @@ class ProdutoCatalogoForm(forms.ModelForm):
             "tecido",
         ]
         labels = {
-            "name": "Nome do produto",
-            "tipo": "Tipo",
+            "name": "Nome do servico ou item",
+            "categoria": "Categoria",
             "valor": "Valor base",
             "descricao": "Descricao",
-            "tempo": "Tempo de producao",
+            "tempo": "Tempo medio",
             "formato": "Formato",
             "tamanho": "Tamanho",
             "largura": "Largura",
             "comprimento": "Comprimento",
-            "tecido": "Tecido",
+            "tecido": "Material ou tecido",
         }
         widgets = {
-            "name": forms.TextInput(attrs={"placeholder": "Ex.: Banner promocional"}),
-            "tipo": forms.TextInput(attrs={"placeholder": "Ex.: Impressao"}),
+            "name": forms.TextInput(attrs={"placeholder": "Ex.: Sofa retratil 3 lugares"}),
+            "categoria": forms.Select(),
             "valor": forms.NumberInput(attrs={"step": "0.01", "placeholder": "0.00"}),
             "descricao": forms.Textarea(
-                attrs={"rows": 4, "placeholder": "Detalhes do produto e acabamento."}
+                attrs={"rows": 4, "placeholder": "Ex.: Higienizacao profunda com extratora e acabamento antiodor."}
             ),
-            "tempo": forms.TextInput(attrs={"placeholder": "Ex.: 2 dias uteis"}),
-            "formato": forms.TextInput(attrs={"placeholder": "Ex.: 1x1 m"}),
-            "tamanho": forms.TextInput(attrs={"placeholder": "Ex.: Medio"}),
-            "largura": forms.TextInput(attrs={"placeholder": "Ex.: 100 cm"}),
-            "comprimento": forms.TextInput(attrs={"placeholder": "Ex.: 100 cm"}),
-            "tecido": forms.TextInput(attrs={"placeholder": "Ex.: Lona front"}),
+            "tempo": forms.TextInput(attrs={"placeholder": "Ex.: 2 horas"}),
+            "formato": forms.TextInput(attrs={"placeholder": "Ex.: Retratil, chaise, canto"}),
+            "tamanho": forms.TextInput(attrs={"placeholder": "Ex.: 2 lugares, queen, 2x3 m"}),
+            "largura": forms.TextInput(attrs={"placeholder": "Ex.: 180 cm"}),
+            "comprimento": forms.TextInput(attrs={"placeholder": "Ex.: 220 cm"}),
+            "tecido": forms.TextInput(attrs={"placeholder": "Ex.: Suede, linho, veludo"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name in [
-            "tipo",
+            "categoria",
             "descricao",
             "tempo",
             "formato",
@@ -63,37 +85,91 @@ class ProdutoCatalogoForm(forms.ModelForm):
             widget = field.widget
             current_class = widget.attrs.get("class", "")
             base_class = "form-control"
-            if name == "valor":
-                base_class = "form-control"
+            if name == "categoria":
+                base_class = "form-select"
             widget.attrs["class"] = f"{current_class} {base_class}".strip()
+
+    def save(self, commit=True):
+        item = super().save(commit=False)
+        item.tipo = item.categoria.name if item.categoria else None
+        if commit:
+            item.save()
+            self.save_m2m()
+        return item
 
 
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ["name", "email", "telefone", "endereco", "status"]
+        fields = [
+            "name",
+            "email",
+            "telefone",
+            "cep",
+            "logradouro",
+            "numero",
+            "complemento",
+            "bairro",
+            "cidade",
+            "uf",
+            "endereco",
+            "status",
+        ]
         labels = {
             "name": "Nome do lead",
             "email": "Email",
             "telefone": "Telefone",
-            "endereco": "Endereco",
+            "cep": "CEP",
+            "logradouro": "Logradouro",
+            "numero": "Numero",
+            "complemento": "Complemento",
+            "bairro": "Bairro",
+            "cidade": "Cidade",
+            "uf": "UF",
             "status": "Status",
         }
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Ex.: Maria Souza"}),
             "email": forms.EmailInput(attrs={"placeholder": "cliente@empresa.com"}),
             "telefone": forms.TextInput(attrs={"placeholder": "(11) 99999-9999"}),
-            "endereco": forms.TextInput(attrs={"placeholder": "Rua, numero, bairro"}),
+            "cep": forms.TextInput(attrs={"placeholder": "00000-000", "autocomplete": "postal-code"}),
+            "logradouro": forms.TextInput(attrs={"placeholder": "Rua, avenida ou travessa"}),
+            "numero": forms.TextInput(attrs={"placeholder": "Numero"}),
+            "complemento": forms.TextInput(attrs={"placeholder": "Apartamento, bloco, referencia"}),
+            "bairro": forms.TextInput(attrs={"placeholder": "Bairro"}),
+            "cidade": forms.TextInput(attrs={"placeholder": "Cidade"}),
+            "uf": forms.TextInput(attrs={"placeholder": "SP"}),
+            "endereco": forms.HiddenInput(),
             "status": forms.Select(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["telefone"].required = False
-        self.fields["endereco"].required = False
+        for field_name in [
+            "telefone",
+            "cep",
+            "logradouro",
+            "numero",
+            "complemento",
+            "bairro",
+            "cidade",
+            "uf",
+            "endereco",
+        ]:
+            self.fields[field_name].required = False
 
         for name, field in self.fields.items():
-            field.widget.attrs["class"] = "form-select" if name == "status" else "form-control"
+            if name == "status":
+                field.widget.attrs["class"] = "form-select"
+            elif name != "endereco":
+                field.widget.attrs["class"] = "form-control text-uppercase" if name == "uf" else "form-control"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        endereco = montar_endereco_limpo(cleaned_data)
+        cleaned_data["uf"] = (cleaned_data.get("uf") or "").strip().upper()
+        cleaned_data["endereco"] = endereco or (cleaned_data.get("endereco") or "").strip()
+        return cleaned_data
 
 
 class OrcamentoForm(forms.Form):
@@ -112,12 +188,49 @@ class OrcamentoForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(attrs={"placeholder": "(11) 99999-9999"}),
     )
-    endereco = forms.CharField(
-        label="Endereco",
+    cep = forms.CharField(
+        label="CEP",
         required=False,
-        max_length=200,
-        widget=forms.TextInput(attrs={"placeholder": "Rua, numero, bairro"}),
+        max_length=9,
+        widget=forms.TextInput(attrs={"placeholder": "00000-000", "autocomplete": "postal-code"}),
     )
+    logradouro = forms.CharField(
+        label="Logradouro",
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(attrs={"placeholder": "Rua, avenida ou travessa"}),
+    )
+    numero = forms.CharField(
+        label="Numero",
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(attrs={"placeholder": "Numero"}),
+    )
+    complemento = forms.CharField(
+        label="Complemento",
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(attrs={"placeholder": "Apartamento, bloco, referencia"}),
+    )
+    bairro = forms.CharField(
+        label="Bairro",
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(attrs={"placeholder": "Bairro"}),
+    )
+    cidade = forms.CharField(
+        label="Cidade",
+        required=False,
+        max_length=120,
+        widget=forms.TextInput(attrs={"placeholder": "Cidade"}),
+    )
+    uf = forms.CharField(
+        label="UF",
+        required=False,
+        max_length=2,
+        widget=forms.TextInput(attrs={"placeholder": "SP"}),
+    )
+    endereco = forms.CharField(required=False, widget=forms.HiddenInput())
     descricao = forms.CharField(
         label="Observacoes",
         required=False,
@@ -141,11 +254,52 @@ class OrcamentoForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["itens"].queryset = Service_catalog.objects.all()
+        self.fields["itens"].queryset = Service_catalog.objects.select_related("categoria").order_by("categoria__name", "tipo", "name")
+        self.fields["itens"].label_from_instance = self._catalogo_item_label
         self.fields["name"].widget.attrs["class"] = "form-control"
         self.fields["email"].widget.attrs["class"] = "form-control"
         self.fields["telefone"].widget.attrs["class"] = "form-control"
-        self.fields["endereco"].widget.attrs["class"] = "form-control"
+        self.fields["cep"].widget.attrs["class"] = "form-control"
+        self.fields["logradouro"].widget.attrs["class"] = "form-control"
+        self.fields["numero"].widget.attrs["class"] = "form-control"
+        self.fields["complemento"].widget.attrs["class"] = "form-control"
+        self.fields["bairro"].widget.attrs["class"] = "form-control"
+        self.fields["cidade"].widget.attrs["class"] = "form-control"
+        self.fields["uf"].widget.attrs["class"] = "form-control text-uppercase"
         self.fields["descricao"].widget.attrs["class"] = "form-control"
         self.fields["quantidade"].widget.attrs["class"] = "form-control"
         self.fields["itens"].widget.attrs["class"] = "form-select"
+
+    @staticmethod
+    def _catalogo_item_label(item: Service_catalog) -> str:
+        categoria_nome = item.categoria_nome
+        categoria = f"{categoria_nome} - " if categoria_nome else ""
+        return f"{categoria}{item.name} | R$ {item.valor:.2f}"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cleaned_data["uf"] = (cleaned_data.get("uf") or "").strip().upper()
+        cleaned_data["endereco"] = montar_endereco_limpo(cleaned_data) or (cleaned_data.get("endereco") or "").strip()
+        return cleaned_data
+
+
+def montar_endereco_limpo(cleaned_data: dict) -> str:
+    logradouro = (cleaned_data.get("logradouro") or "").strip()
+    numero = (cleaned_data.get("numero") or "").strip()
+    complemento = (cleaned_data.get("complemento") or "").strip()
+    bairro = (cleaned_data.get("bairro") or "").strip()
+    cidade = (cleaned_data.get("cidade") or "").strip()
+    uf = (cleaned_data.get("uf") or "").strip().upper()
+
+    partes = []
+    if logradouro:
+        partes.append(f"{logradouro}, {numero}" if numero else logradouro)
+    if complemento:
+        partes.append(complemento)
+    if bairro:
+        partes.append(bairro)
+    cidade_uf = " - ".join(parte for parte in [cidade, uf] if parte)
+    if cidade_uf:
+        partes.append(cidade_uf)
+
+    return " | ".join(partes)

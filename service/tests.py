@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 
-from service.models import Cliente, Orcamento, Service_catalog
+from service.models import CategoriaCatalogo, Cliente, Orcamento, Service_catalog
+from service.services.viacep import EnderecoViaCep
 
 
 class ServiceViewsTests(TestCase):
@@ -25,6 +28,7 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Catalogo")
         self.assertContains(response, self.item_a.name)
+        self.assertContains(response, "Orcar item")
 
     def test_lista_clientes_retorna_ok(self):
         Cliente.objects.create(
@@ -78,6 +82,34 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Cliente.objects.filter(email="novo@teste.com").exists())
 
+    def test_cria_lead_com_endereco_via_cep(self):
+        response = self.client.post(
+            reverse("novo_lead"),
+            {
+                "name": "Lead CEP",
+                "email": "lead-cep@teste.com",
+                "telefone": "11933334444",
+                "cep": "01001-000",
+                "logradouro": "Praca da Se",
+                "numero": "200",
+                "complemento": "Casa",
+                "bairro": "Se",
+                "cidade": "Sao Paulo",
+                "uf": "sp",
+                "status": Cliente.Status.NOVO,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        cliente = Cliente.objects.get(email="lead-cep@teste.com")
+        self.assertEqual(cliente.cep, "01001-000")
+        self.assertEqual(cliente.logradouro, "Praca da Se")
+        self.assertEqual(cliente.numero, "200")
+        self.assertEqual(cliente.bairro, "Se")
+        self.assertEqual(cliente.cidade, "Sao Paulo")
+        self.assertEqual(cliente.uf, "SP")
+        self.assertIn("Praca da Se, 200", cliente.endereco)
+
     def test_lista_orcamentos_retorna_ok(self):
         orcamento = Orcamento.objects.create(
             name="Cliente Lista",
@@ -130,24 +162,70 @@ class ServiceViewsTests(TestCase):
         self.assertFalse(Orcamento.objects.filter(pk=orcamento.pk).exists())
 
     def test_cria_produto_no_catalogo(self):
+        categoria = CategoriaCatalogo.objects.create(name="Sofas")
         response = self.client.post(
             reverse("novo_produto"),
             {
-                "name": "Faixa promocional",
-                "tipo": "Impressao",
+                "name": "Sofa retratil 3 lugares",
+                "categoria": categoria.pk,
                 "valor": 59.9,
-                "descricao": "Faixa em lona com acabamento.",
-                "tempo": "1 dia util",
-                "formato": "3x0,7 m",
+                "descricao": "Higienizacao completa de sofa.",
+                "tempo": "2 horas",
+                "formato": "Retratil",
                 "tamanho": "Grande",
                 "largura": "70 cm",
                 "comprimento": "300 cm",
-                "tecido": "Lona",
+                "tecido": "Suede",
             },
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Service_catalog.objects.filter(name="Faixa promocional").exists())
+        produto = Service_catalog.objects.get(name="Sofa retratil 3 lugares")
+        self.assertEqual(produto.categoria, categoria)
+        self.assertEqual(produto.tipo, "Sofas")
+
+    def test_cria_categoria_do_catalogo(self):
+        response = self.client.post(
+            reverse("nova_categoria"),
+            {
+                "name": "Tapetes",
+                "descricao": "Itens de higienizacao para tapetes.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(CategoriaCatalogo.objects.filter(name="Tapetes").exists())
+
+    def test_edita_item_do_catalogo(self):
+        categoria = CategoriaCatalogo.objects.create(name="Colchoes")
+
+        response = self.client.post(
+            reverse("editar_produto", args=[self.item_a.pk]),
+            {
+                "name": "Colchao queen",
+                "categoria": categoria.pk,
+                "valor": 180.0,
+                "descricao": "Higienizacao de colchao queen.",
+                "tempo": "2 horas",
+                "formato": "Queen",
+                "tamanho": "Queen",
+                "largura": "158 cm",
+                "comprimento": "198 cm",
+                "tecido": "Malha",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.item_a.refresh_from_db()
+        self.assertEqual(self.item_a.name, "Colchao queen")
+        self.assertEqual(self.item_a.categoria, categoria)
+        self.assertEqual(self.item_a.tipo, "Colchoes")
+
+    def test_deleta_item_do_catalogo(self):
+        response = self.client.post(reverse("deletar_produto", args=[self.item_b.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Service_catalog.objects.filter(pk=self.item_b.pk).exists())
 
     def test_cria_orcamento_com_total(self):
         response = self.client.post(
@@ -170,6 +248,62 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(orcamento.valor, 400.0)
         self.assertEqual(orcamento.quantidade, 2)
         self.assertEqual(orcamento.email, "cliente@teste.com")
+
+    def test_cria_orcamento_com_endereco_via_cep(self):
+        response = self.client.post(
+            reverse("novo_orcamento"),
+            {
+                "name": "Cliente CEP",
+                "email": "cep@teste.com",
+                "telefone": "11999999999",
+                "cep": "01001-000",
+                "logradouro": "Praca da Se",
+                "numero": "100",
+                "complemento": "Sala 2",
+                "bairro": "Se",
+                "cidade": "Sao Paulo",
+                "uf": "sp",
+                "descricao": "Pedido com endereco estruturado",
+                "quantidade": 1,
+                "itens": [self.item_a.pk],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        orcamento = Orcamento.objects.get(name="Cliente CEP")
+        self.assertEqual(orcamento.cep, "01001-000")
+        self.assertEqual(orcamento.logradouro, "Praca da Se")
+        self.assertEqual(orcamento.numero, "100")
+        self.assertEqual(orcamento.bairro, "Se")
+        self.assertEqual(orcamento.cidade, "Sao Paulo")
+        self.assertEqual(orcamento.uf, "SP")
+        self.assertIn("Praca da Se, 100", orcamento.endereco)
+
+    @patch("service.views.orcamentos.ViaCepService")
+    def test_busca_endereco_por_cep(self, service_mock):
+        service_mock.return_value.buscar_por_cep.return_value = EnderecoViaCep(
+            cep="01001-000",
+            logradouro="Praca da Se",
+            bairro="Se",
+            cidade="Sao Paulo",
+            uf="SP",
+            complemento="lado impar",
+        )
+
+        response = self.client.get(reverse("buscar_endereco_cep", args=["01001000"]))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["endereco"]["logradouro"], "Praca da Se")
+        self.assertEqual(payload["endereco"]["cidade"], "Sao Paulo")
+
+    def test_novo_orcamento_preseleciona_item_do_catalogo(self):
+        response = self.client.get(f"{reverse('novo_orcamento')}?item={self.item_a.pk}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.item_a.name)
+        self.assertContains(response, f'value="{self.item_a.pk}" selected')
 
     def test_conclui_orcamento_sem_criar_cliente(self):
         orcamento = Orcamento.objects.create(

@@ -42,8 +42,8 @@
                     <span>Orçamentos</span>
                 </a>
                 <a href="{% url 'catalogo' %}" class="hf-nav-link{% if request.resolver_match.url_name == 'catalogo' or request.resolver_match.url_name == 'novo_produto' %} active{% endif %}">
-                    <i class="bi bi-clipboard-check"></i>
-                    <span>Ordens de Serviço</span>
+                    <i class="bi bi-grid"></i>
+                    <span>Catálogo</span>
                 </a>
                 <a href="{% url 'catalogo' %}" class="hf-nav-link">
                     <i class="bi bi-calendar3"></i>
@@ -183,6 +183,88 @@
                             form.submit();
                         }
                     });
+                });
+
+                document.querySelectorAll("form[data-cep-url-template]").forEach((cepForm) => {
+                    const cepInput = cepForm.querySelector("[name='cep']");
+                    const searchButton = cepForm.querySelector("[data-cep-search]");
+                    if (!cepInput) {
+                        return;
+                    }
+
+                    const fields = {
+                        logradouro: cepForm.querySelector("[name='logradouro']"),
+                        bairro: cepForm.querySelector("[name='bairro']"),
+                        cidade: cepForm.querySelector("[name='cidade']"),
+                        uf: cepForm.querySelector("[name='uf']"),
+                        complemento: cepForm.querySelector("[name='complemento']"),
+                    };
+
+                    function formatCep(value) {
+                        const digits = value.replace(/\D/g, "").slice(0, 8);
+                        if (digits.length > 5) {
+                            return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+                        }
+                        return digits;
+                    }
+
+                    function setLoading(isLoading) {
+                        if (!searchButton) {
+                            return;
+                        }
+                        searchButton.disabled = isLoading;
+                        searchButton.innerHTML = isLoading
+                            ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>'
+                            : '<i class="bi bi-search"></i>';
+                    }
+
+                    async function buscarCep() {
+                        const cep = cepInput.value.replace(/\D/g, "");
+                        if (cep.length !== 8) {
+                            window.hfAlert({
+                                icon: "warning",
+                                title: "CEP inválido",
+                                text: "Informe um CEP com 8 dígitos.",
+                            });
+                            return;
+                        }
+
+                        const url = cepForm.dataset.cepUrlTemplate.replace("00000000", cep);
+                        setLoading(true);
+                        try {
+                            const response = await fetch(url, {headers: {"Accept": "application/json"}});
+                            const data = await response.json();
+                            if (!response.ok || !data.ok) {
+                                throw new Error(data.error || "Não foi possível buscar o CEP.");
+                            }
+
+                            if (fields.logradouro) fields.logradouro.value = data.endereco.logradouro || "";
+                            if (fields.bairro) fields.bairro.value = data.endereco.bairro || "";
+                            if (fields.cidade) fields.cidade.value = data.endereco.cidade || "";
+                            if (fields.uf) fields.uf.value = data.endereco.uf || "";
+                            if (fields.complemento && !fields.complemento.value) {
+                                fields.complemento.value = data.endereco.complemento || "";
+                            }
+                        } catch (error) {
+                            window.hfAlert({
+                                icon: "error",
+                                title: "CEP não encontrado",
+                                text: error.message,
+                            });
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+
+                    cepInput.addEventListener("input", () => {
+                        cepInput.value = formatCep(cepInput.value);
+                    });
+                    cepInput.addEventListener("blur", () => {
+                        if (cepInput.value.replace(/\D/g, "").length === 8) {
+                            buscarCep();
+                        }
+                    });
+                    searchButton?.addEventListener("click", buscarCep);
                 });
             });
         })();

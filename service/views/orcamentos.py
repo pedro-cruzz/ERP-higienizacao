@@ -3,7 +3,7 @@ from io import BytesIO
 
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from reportlab.lib import colors
@@ -12,6 +12,7 @@ from reportlab.pdfgen import canvas
 
 from service.forms import OrcamentoForm
 from service.models import Cliente, Orcamento
+from service.services.viacep import ViaCepLookupError, ViaCepService, ViaCepTemporaryUnavailableError
 
 
 def _criar_ou_atualizar_cliente_do_orcamento(orcamento: Orcamento) -> Cliente:
@@ -80,6 +81,13 @@ def novo_orcamento(request: HttpRequest) -> HttpResponse:
                 email=form.cleaned_data["email"],
                 telefone=form.cleaned_data["telefone"] or None,
                 endereco=form.cleaned_data["endereco"] or None,
+                cep=form.cleaned_data["cep"] or None,
+                logradouro=form.cleaned_data["logradouro"] or None,
+                numero=form.cleaned_data["numero"] or None,
+                complemento=form.cleaned_data["complemento"] or None,
+                bairro=form.cleaned_data["bairro"] or None,
+                cidade=form.cleaned_data["cidade"] or None,
+                uf=form.cleaned_data["uf"] or None,
                 descricao=form.cleaned_data["descricao"] or None,
                 quantidade=quantidade,
                 valor=valor_total,
@@ -89,13 +97,29 @@ def novo_orcamento(request: HttpRequest) -> HttpResponse:
             messages.success(request, "Orcamento criado com sucesso.")
             return redirect("orcamento_detalhe", pk=orcamento.pk)
     else:
-        form = OrcamentoForm()
+        item_inicial = request.GET.get("item")
+        initial = {"itens": [item_inicial]} if item_inicial else None
+        form = OrcamentoForm(initial=initial)
 
     context = {
         "form": form,
         "orcamentos_recentes": Orcamento.objects.prefetch_related("itens").order_by("-id")[:5],
     }
     return render(request, "service/orcamento_form.html", context)
+
+
+def buscar_endereco_cep(request: HttpRequest, cep: str) -> JsonResponse:
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "error": "Metodo nao permitido."}, status=405)
+
+    try:
+        endereco = ViaCepService().buscar_por_cep(cep)
+    except ViaCepTemporaryUnavailableError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=503)
+    except ViaCepLookupError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+    return JsonResponse({"ok": True, "endereco": endereco.as_dict()})
 
 
 def detalhe_orcamento(request: HttpRequest, pk: int) -> HttpResponse:

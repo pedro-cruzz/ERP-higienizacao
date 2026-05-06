@@ -1,10 +1,10 @@
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from service.forms import ClienteForm
-from service.models import Cliente, Service_catalog
+from service.forms import CategoriaCatalogoForm, ClienteForm
+from service.models import CategoriaCatalogo, Cliente, Service_catalog
 
 
 def _lead_status_class(status: str) -> str:
@@ -18,21 +18,44 @@ def _lead_status_class(status: str) -> str:
 
 def catalogo(request: HttpRequest) -> HttpResponse:
     busca = request.GET.get("q", "").strip()
-    itens = Service_catalog.objects.order_by("name")
+    itens = Service_catalog.objects.select_related("categoria").order_by("categoria__name", "tipo", "name")
 
     if busca:
         itens = itens.filter(
             Q(name__icontains=busca)
             | Q(tipo__icontains=busca)
+            | Q(categoria__name__icontains=busca)
             | Q(descricao__icontains=busca)
         )
+
+    categorias = CategoriaCatalogo.objects.annotate(total=Count("itens")).order_by("name")
 
     context = {
         "busca": busca,
         "itens": itens,
         "total_itens": itens.count(),
+        "total_categorias": categorias.count(),
+        "valor_medio": itens.aggregate(media=Avg("valor"))["media"] or 0,
+        "categorias": categorias,
     }
     return render(request, "service/catalogo.html", context)
+
+
+def nova_categoria(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = CategoriaCatalogoForm(request.POST)
+        if form.is_valid():
+            categoria = form.save()
+            messages.success(request, f"Categoria '{categoria.name}' cadastrada com sucesso.")
+            return redirect("catalogo")
+    else:
+        form = CategoriaCatalogoForm()
+
+    context = {
+        "form": form,
+        "categorias": CategoriaCatalogo.objects.annotate(total=Count("itens")).order_by("name"),
+    }
+    return render(request, "service/categoria_form.html", context)
 
 
 def listar_clientes(request: HttpRequest) -> HttpResponse:

@@ -1,113 +1,126 @@
 {% extends "service/base.html" %}
 
-{% block title %}Novo Produto | ERP Higienizacao{% endblock %}
+{% block title %}{% if is_edit %}Editar Item{% else %}Novo Item{% endif %} | HigiFlow{% endblock %}
 
 {% block content %}
-    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
-        <span class="badge rounded-pill px-3 py-2 mb-3">Cadastro de produtos</span>
-        <h1 class="display-6 fw-semibold">Adicione novos produtos ao catalogo sem sair do fluxo principal.</h1>
-        <p class="mb-0 text-white-50">
-            Preencha os dados mais importantes do produto para ele aparecer
-            imediatamente no catalogo e ficar disponivel para os orcamentos.
-        </p>
+    <section class="page-heading">
+        <div>
+            <h1>{% if is_edit %}Editar item{% else %}Novo item{% endif %}</h1>
+            <p>Cadastre servicos, produtos ou tipos de estofado que entram nos orcamentos.</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'nova_categoria' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-tags"></i>
+                <span>Nova categoria</span>
+            </a>
+            <a href="{% url 'catalogo' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-arrow-left"></i>
+                <span>Catalogo</span>
+            </a>
+        </div>
     </section>
 
-    <section class="row g-4">
-        <article class="col-12 col-xl-8">
-            <div class="content-card p-4">
-                <h2 class="h4 mb-4">Novo produto</h2>
-                <form method="post" class="row g-3">
+    <section class="catalog-form-layout">
+        <article class="catalog-form-panel">
+            <header>
+                <span class="status-pill status-soft-blue">Cadastro</span>
+                <h2>{% if is_edit %}Atualizar detalhes{% else %}Detalhes do item{% endif %}</h2>
+            </header>
+
+            <form method="post" class="catalog-form">
                 {% csrf_token %}
 
-                <div class="col-12 col-md-6">
-                    <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">{{ form.name.label }}</label>
+                <div class="form-field span-2">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
                     {{ form.name }}
                     {{ form.name.errors }}
                 </div>
 
-                <div class="col-12 col-md-6">
-                    <label for="{{ form.tipo.id_for_label }}" class="form-label fw-semibold">{{ form.tipo.label }}</label>
-                    {{ form.tipo }}
-                    {{ form.tipo.errors }}
+                <div class="form-field">
+                    <label for="{{ form.categoria.id_for_label }}">{{ form.categoria.label }}</label>
+                    {{ form.categoria }}
+                    {{ form.categoria.errors }}
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.valor.id_for_label }}" class="form-label fw-semibold">{{ form.valor.label }}</label>
+                <div class="form-field">
+                    <label for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
                     {{ form.valor }}
                     {{ form.valor.errors }}
                 </div>
 
-                <div class="col-12">
-                    <label for="{{ form.descricao.id_for_label }}" class="form-label fw-semibold">{{ form.descricao.label }}</label>
+                <div class="form-field span-2">
+                    <label for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
                     {{ form.descricao }}
                     {{ form.descricao.errors }}
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.tempo.id_for_label }}" class="form-label fw-semibold">{{ form.tempo.label }}</label>
+                <div class="form-field">
+                    <label for="{{ form.tempo.id_for_label }}">{{ form.tempo.label }}</label>
                     {{ form.tempo }}
                     {{ form.tempo.errors }}
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.formato.id_for_label }}" class="form-label fw-semibold">{{ form.formato.label }}</label>
+                <div class="form-field">
+                    <label for="{{ form.formato.id_for_label }}">{{ form.formato.label }}</label>
                     {{ form.formato }}
                     {{ form.formato.errors }}
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.tamanho.id_for_label }}" class="form-label fw-semibold">{{ form.tamanho.label }}</label>
+                <div class="form-field">
+                    <label for="{{ form.tamanho.id_for_label }}">{{ form.tamanho.label }}</label>
                     {{ form.tamanho }}
                     {{ form.tamanho.errors }}
                 </div>
 
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.largura.id_for_label }}" class="form-label fw-semibold">{{ form.largura.label }}</label>
-                    {{ form.largura }}
-                    {{ form.largura.errors }}
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.comprimento.id_for_label }}" class="form-label fw-semibold">{{ form.comprimento.label }}</label>
-                    {{ form.comprimento }}
-                    {{ form.comprimento.errors }}
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <label for="{{ form.tecido.id_for_label }}" class="form-label fw-semibold">{{ form.tecido.label }}</label>
+                <div class="form-field">
+                    <label for="{{ form.tecido.id_for_label }}">{{ form.tecido.label }}</label>
                     {{ form.tecido }}
                     {{ form.tecido.errors }}
                 </div>
 
-                <div class="col-12 d-flex flex-wrap gap-2 pt-2">
-                    <button type="submit" class="btn btn-success">Salvar produto</button>
-                    <a href="{% url 'catalogo' %}" class="btn btn-outline-secondary">Voltar ao catalogo</a>
+                <div class="form-field">
+                    <label for="{{ form.largura.id_for_label }}">{{ form.largura.label }}</label>
+                    {{ form.largura }}
+                    {{ form.largura.errors }}
+                </div>
+
+                <div class="form-field">
+                    <label for="{{ form.comprimento.id_for_label }}">{{ form.comprimento.label }}</label>
+                    {{ form.comprimento }}
+                    {{ form.comprimento.errors }}
+                </div>
+
+                <div class="form-actions span-2">
+                    <button type="submit" class="hf-btn hf-btn-primary">
+                        <i class="bi bi-check-lg"></i>
+                        <span>{% if is_edit %}Salvar alteracoes{% else %}Salvar item{% endif %}</span>
+                    </button>
+                    <a href="{% url 'catalogo' %}" class="hf-btn hf-btn-light">Cancelar</a>
                 </div>
             </form>
-                </div>
         </article>
 
-        <aside class="col-12 col-xl-4">
-            <div class="section-card p-4">
-                <h2 class="h4 mb-4">Ultimos produtos</h2>
+        <aside class="dashboard-card catalog-recent">
+            <header>
+                <h2>Ultimos itens</h2>
+                <a href="{% url 'catalogo' %}">Ver todos <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
                 {% if ultimos_produtos %}
-                    <div class="list-group list-group-flush">
-                        {% for item in ultimos_produtos %}
-                            <div class="list-group-item px-0 py-3 bg-transparent border-bottom">
-                                <div class="d-flex justify-content-between gap-3">
-                                    <div>
-                                        <div class="fw-semibold">{{ item.name }}</div>
-                                        <div class="small muted-copy">{{ item.tipo|default:"Sem tipo" }}</div>
-                                    </div>
-                                    <div class="price-tag">R$ {{ item.valor|floatformat:2 }}</div>
-                                </div>
+                    {% for item in ultimos_produtos %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ item.name }}</strong>
+                                <span>{{ item.categoria_nome|default:"Sem categoria" }}</span>
                             </div>
-                        {% endfor %}
-                    </div>
+                            <div class="recent-meta">
+                                <strong>R$ {{ item.valor|floatformat:0 }}</strong>
+                            </div>
+                        </div>
+                    {% endfor %}
                 {% else %}
-                    <div class="empty-state text-center p-4">
-                        Nenhum produto cadastrado ainda.
-                    </div>
+                    <div class="empty-dashboard-state">Nenhum item cadastrado ainda.</div>
                 {% endif %}
             </div>
         </aside>

@@ -1,0 +1,76 @@
+{% extends "service/base.html" %}
+
+{% block title %}Nova Categoria | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="page-heading">
+        <div>
+            <h1>Nova categoria</h1>
+            <p>Organize o catalogo por tipos de servico, como sofas, tapetes e colchoes.</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'catalogo' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-arrow-left"></i>
+                <span>Catalogo</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="catalog-form-layout">
+        <article class="catalog-form-panel">
+            <header>
+                <span class="status-pill status-soft-blue">Categoria</span>
+                <h2>Detalhes da categoria</h2>
+            </header>
+
+            <form method="post" class="catalog-form">
+                {% csrf_token %}
+
+                <div class="form-field span-2">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+
+                <div class="form-field span-2">
+                    <label for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+                    {{ form.descricao }}
+                    {{ form.descricao.errors }}
+                </div>
+
+                <div class="form-actions span-2">
+                    <button type="submit" class="hf-btn hf-btn-primary">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Salvar categoria</span>
+                    </button>
+                    <a href="{% url 'catalogo' %}" class="hf-btn hf-btn-light">Cancelar</a>
+                </div>
+            </form>
+        </article>
+
+        <aside class="dashboard-card catalog-recent">
+            <header>
+                <h2>Categorias atuais</h2>
+                <a href="{% url 'novo_produto' %}">Novo item <i class="bi bi-chevron-right"></i></a>
+            </header>
+
+            <div class="recent-list">
+                {% if categorias %}
+                    {% for categoria in categorias %}
+                        <div class="recent-row">
+                            <div>
+                                <strong>{{ categoria.name }}</strong>
+                                <span>{{ categoria.descricao|default:"Sem descricao" }}</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="status-pill status-gray">{{ categoria.total }} item(ns)</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-dashboard-state">Nenhuma categoria cadastrada ainda.</div>
+                {% endif %}
+            </div>
+        </aside>
+    </section>
+{% endblock %}

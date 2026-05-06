@@ -1,10 +1,30 @@
 from django.db import models
 
 
+class CategoriaCatalogo(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Service_catalog(models.Model):
     name = models.CharField(max_length=100, unique=True, null=False)
     tempo = models.CharField(max_length=100, null=True)
     tipo = models.CharField(max_length=100, null=True)
+    categoria = models.ForeignKey(
+        CategoriaCatalogo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens",
+    )
     id = models.AutoField(primary_key=True)
     valor = models.FloatField(null=False)
     descricao = models.TextField(null=True)
@@ -18,6 +38,10 @@ class Service_catalog(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def categoria_nome(self):
+        return self.categoria.name if self.categoria else self.tipo
 
 
 class Orcamento(models.Model):

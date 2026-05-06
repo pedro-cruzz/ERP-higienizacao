@@ -16,7 +16,7 @@
         <article class="col-12 col-xl-8">
             <div class="content-card p-4">
                 <h2 class="h4 mb-4">Novo orcamento</h2>
-                <form method="post" class="row g-3">
+                <form method="post" class="row g-3" data-cep-url-template="{% url 'buscar_endereco_cep' '00000000' %}">
                 {% csrf_token %}
 
                 <div class="col-12 col-md-6">
@@ -37,10 +37,61 @@
                     {{ form.telefone.errors }}
                 </div>
 
+                {{ form.endereco }}
+
                 <div class="col-12">
-                    <label for="{{ form.endereco.id_for_label }}" class="form-label fw-semibold">{{ form.endereco.label }}</label>
-                    {{ form.endereco }}
-                    {{ form.endereco.errors }}
+                    <div class="d-flex align-items-center justify-content-between gap-3 mb-1">
+                        <h3 class="h5 mb-0">Endereco do servico</h3>
+                        <span class="status-pill status-soft-blue">ViaCEP</span>
+                    </div>
+                    <p class="muted-copy small mb-0">Digite o CEP para preencher rua, bairro, cidade e UF automaticamente.</p>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="{{ form.cep.id_for_label }}" class="form-label fw-semibold">{{ form.cep.label }}</label>
+                    <div class="input-group">
+                        {{ form.cep }}
+                        <button type="button" class="btn btn-outline-secondary" data-cep-search>
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    {{ form.cep.errors }}
+                </div>
+
+                <div class="col-12 col-md-8">
+                    <label for="{{ form.logradouro.id_for_label }}" class="form-label fw-semibold">{{ form.logradouro.label }}</label>
+                    {{ form.logradouro }}
+                    {{ form.logradouro.errors }}
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label for="{{ form.numero.id_for_label }}" class="form-label fw-semibold">{{ form.numero.label }}</label>
+                    {{ form.numero }}
+                    {{ form.numero.errors }}
+                </div>
+
+                <div class="col-12 col-md-5">
+                    <label for="{{ form.complemento.id_for_label }}" class="form-label fw-semibold">{{ form.complemento.label }}</label>
+                    {{ form.complemento }}
+                    {{ form.complemento.errors }}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="{{ form.bairro.id_for_label }}" class="form-label fw-semibold">{{ form.bairro.label }}</label>
+                    {{ form.bairro }}
+                    {{ form.bairro.errors }}
+                </div>
+
+                <div class="col-12 col-md-8">
+                    <label for="{{ form.cidade.id_for_label }}" class="form-label fw-semibold">{{ form.cidade.label }}</label>
+                    {{ form.cidade }}
+                    {{ form.cidade.errors }}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="{{ form.uf.id_for_label }}" class="form-label fw-semibold">{{ form.uf.label }}</label>
+                    {{ form.uf }}
+                    {{ form.uf.errors }}
                 </div>
 
                 <div class="col-12">
