@@ -2,79 +2,220 @@
 
 {% block title %}Orcamento {{ orcamento.id }} | ERP Higienizacao{% endblock %}
 
+{% block extra_head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
+{% endblock %}
+
 {% block content %}
-    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
-        <span class="badge rounded-pill px-3 py-2 mb-3">Resumo do orcamento</span>
-        <h1 class="display-6 fw-semibold">{{ orcamento.name }}</h1>
-        <p class="mb-0 text-white-50">{{ orcamento.descricao|default:"Sem observacoes registradas para este orcamento." }}</p>
+    <section class="page-heading">
+        <div>
+            <h1>Orcamento #{{ orcamento.id }}</h1>
+            <p>{{ orcamento.name }}{% if orcamento.descricao %} - {{ orcamento.descricao }}{% endif %}</p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'orcamentos' %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-arrow-left"></i>
+                <span>Voltar</span>
+            </a>
+            <a href="{% url 'gerar_orcamento_pdf' orcamento.pk %}" class="hf-btn hf-btn-primary">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>Gerar PDF</span>
+            </a>
+            <a href="{% url 'editar_orcamento' orcamento.pk %}" class="hf-btn hf-btn-light">
+                <i class="bi bi-pencil-square"></i>
+                <span>Editar</span>
+            </a>
+        </div>
     </section>
 
-    <section class="row g-4">
-        <article class="col-12 col-xl-8">
-            <div class="section-card p-4">
-            <h2 class="h4 mb-4">Itens selecionados</h2>
-            {% if itens %}
-                <div class="list-group list-group-flush">
-                    {% for item in itens %}
-                        <div class="list-group-item px-0 py-3 bg-transparent border-bottom">
-                            <div class="d-flex justify-content-between gap-3">
-                                <div>
-                                    <div class="fw-semibold">{{ item.name }}</div>
-                                    <div class="small muted-copy">{{ item.tipo|default:"Sem tipo" }}</div>
-                                </div>
-                                <div class="price-tag">R$ {{ item.valor|floatformat:2 }}</div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state text-center p-4">Este orcamento nao possui itens.</div>
-            {% endif %}
+    <section class="metric-grid orcamento-metrics" aria-label="Resumo do orcamento">
+        <article class="metric-card">
+            <div>
+                <p>Status</p>
+                <strong>{% if orcamento.aprovado %}Concluido{% else %}Pendente{% endif %}</strong>
+                <span>
+                    <i class="bi {% if orcamento.aprovado %}bi-check-circle{% else %}bi-clock{% endif %}"></i>
+                    {% if orcamento.aprovado %}Pronto para agenda{% else %}Aguardando conclusao{% endif %}
+                </span>
             </div>
+            <span class="metric-icon"><i class="bi bi-clipboard-check"></i></span>
         </article>
 
-        <aside class="col-12 col-xl-4">
-            <div class="section-card p-4">
-                <h2 class="h4 mb-4">Resumo financeiro</h2>
-                <div class="d-grid gap-3">
-                    <div class="mini-stat p-3">
-                        <div class="small text-uppercase text-secondary fw-semibold">Status</div>
-                        <div class="fs-5 fw-bold">
-                            {% if orcamento.aprovado %}
-                                <span class="text-success">Concluido</span>
-                            {% else %}
-                                <span class="text-warning">Pendente</span>
-                            {% endif %}
+        <article class="metric-card">
+            <div>
+                <p>Valor total</p>
+                <strong>R$ {{ orcamento.valor|floatformat:2 }}</strong>
+                <span><i class="bi bi-currency-dollar"></i>Proposta comercial</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Quantidade</p>
+                <strong>{{ orcamento.quantidade }}</strong>
+                <span><i class="bi bi-box-seam"></i>Unidades do servico</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-layers"></i></span>
+        </article>
+
+        <article class="metric-card">
+            <div>
+                <p>Itens</p>
+                <strong>{{ itens|length }}</strong>
+                <span><i class="bi bi-list-check"></i>Selecionados</span>
+            </div>
+            <span class="metric-icon"><i class="bi bi-grid"></i></span>
+        </article>
+    </section>
+
+    <section class="orcamento-detail-grid">
+        <div class="orcamento-main-stack">
+            <article class="dashboard-card orcamento-panel">
+                <header>
+                    <h2>Itens selecionados</h2>
+                    <span class="status-pill status-soft-blue">{{ itens|length }} item(ns)</span>
+                </header>
+                {% if itens %}
+                    <div class="recent-list">
+                        {% for item in itens %}
+                            <div class="recent-row orcamento-item-row">
+                                <div>
+                                    <strong>{{ item.name }}</strong>
+                                    <span>{{ item.categoria_nome|default:item.tipo|default:"Servico" }}</span>
+                                </div>
+                                <div class="recent-meta">
+                                    <span>{{ orcamento.quantidade }}x</span>
+                                    <strong>R$ {{ item.valor|floatformat:2 }}</strong>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-dashboard-state">Este orcamento nao possui itens.</div>
+                {% endif %}
+            </article>
+
+            <article
+                class="dashboard-card service-map-card orcamento-panel"
+                data-service-map
+                data-location-url="{% url 'buscar_mapa_orcamento' orcamento.pk %}"
+                data-maps-url="{{ mapa.maps_url }}"
+                data-route-url="{{ mapa.rota_url }}"
+            >
+                <div class="service-map-header">
+                    <div>
+                        <h2>Mapa e rota</h2>
+                        <p class="muted-copy mb-0">{{ mapa.endereco|default:"Endereco do servico nao informado." }}</p>
+                    </div>
+                    {% if mapa %}
+                        <div class="service-map-actions">
+                            <button type="button" class="btn btn-success" data-use-location disabled>
+                                <i class="bi bi-crosshair"></i>
+                                Usar minha localizacao
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-map-fullscreen>
+                                <i class="bi bi-arrows-fullscreen"></i>
+                                Tela cheia
+                            </button>
+                            <a class="btn btn-outline-primary" href="{{ mapa.maps_url }}" target="_blank" rel="noopener">
+                                <i class="bi bi-map"></i>
+                                Ver no Maps
+                            </a>
+                            <a class="btn btn-outline-secondary" href="{{ mapa.rota_url }}" target="_blank" rel="noopener">
+                                <i class="bi bi-sign-turn-right"></i>
+                                Rota no Maps
+                            </a>
                         </div>
-                    </div>
-                    <div class="mini-stat p-3">
-                        <div class="small text-uppercase text-secondary fw-semibold">Quantidade</div>
-                        <div class="fs-4 fw-bold">{{ orcamento.quantidade }}</div>
-                    </div>
-                    <div class="mini-stat p-3">
-                        <div class="small text-uppercase text-secondary fw-semibold">Valor total</div>
-                        <div class="price-tag">R$ {{ orcamento.valor|floatformat:2 }}</div>
-                    </div>
-                </div>
-                <p class="muted-copy mt-3">O total foi calculado com base nos itens escolhidos multiplicados pela quantidade informada.</p>
-                <div class="mini-stat p-3 mt-3">
-                    <div class="small text-uppercase text-secondary fw-semibold">Dados do cliente</div>
-                    <div class="mt-2"><strong>{{ orcamento.name }}</strong></div>
-                    <div class="small muted-copy">{{ orcamento.email|default:"Sem email" }}</div>
-                    <div class="small muted-copy">{{ orcamento.telefone|default:"Sem telefone" }}</div>
-                    <div class="small muted-copy">{{ orcamento.endereco|default:"Sem endereco" }}</div>
-                    {% if orcamento.cep %}
-                        <div class="small muted-copy">CEP: {{ orcamento.cep }}</div>
                     {% endif %}
                 </div>
-                {% if orcamento.cliente %}
-                    <div class="mini-stat p-3 mt-3">
-                        <div class="small text-uppercase text-secondary fw-semibold">Cliente vinculado</div>
-                        <div class="mt-2 fw-semibold">{{ orcamento.cliente.name }}</div>
-                        <div class="small muted-copy">{{ orcamento.cliente.email }}</div>
-                    </div>
+
+                {% if mapa %}
+                    <div class="service-map-canvas" data-map-canvas></div>
+                    <div class="service-map-status muted-copy" data-map-status>Localizando endereco do servico...</div>
+                {% else %}
+                    <div class="empty-state text-center p-4 mt-3">Cadastre o endereco do servico para visualizar o mapa.</div>
                 {% endif %}
-                <div class="d-flex flex-wrap gap-2 mt-3">
+            </article>
+        </div>
+
+        <aside class="orcamento-side-stack">
+            <article class="dashboard-card orcamento-panel orcamento-client-card">
+                <header>
+                    <h2>Cliente</h2>
+                    {% if orcamento.aprovado %}
+                        <span class="status-pill status-blue">Concluido</span>
+                    {% else %}
+                        <span class="status-pill status-yellow">Pendente</span>
+                    {% endif %}
+                </header>
+
+                <div class="orcamento-detail-list">
+                    <div>
+                        <span>Nome</span>
+                        <strong>{{ orcamento.name }}</strong>
+                    </div>
+                    <div>
+                        <span>Email</span>
+                        <strong>{{ orcamento.email|default:"Sem email" }}</strong>
+                    </div>
+                    <div>
+                        <span>Telefone</span>
+                        <strong>{{ orcamento.telefone|default:"Sem telefone" }}</strong>
+                    </div>
+                    <div>
+                        <span>Endereco</span>
+                        <strong>{{ mapa.endereco|default:orcamento.endereco|default:"Sem endereco" }}</strong>
+                    </div>
+                    <div>
+                        <span>CEP</span>
+                        <strong>{{ orcamento.cep|default:"Nao informado" }}</strong>
+                    </div>
+                </div>
+            </article>
+
+            <article class="dashboard-card orcamento-panel">
+                <header>
+                    <h2>Vinculo</h2>
+                    <i class="bi bi-person-check metric-icon"></i>
+                </header>
+                {% if orcamento.cliente %}
+                    <div class="orcamento-linked-client">
+                        <strong>{{ orcamento.cliente.name }}</strong>
+                        <span>{{ orcamento.cliente.email }}</span>
+                    </div>
+                {% else %}
+                    <div class="empty-dashboard-state orcamento-compact-empty">Nenhum cliente vinculado.</div>
+                {% endif %}
+
+                {% if total_clientes %}
+                    <form
+                        method="post"
+                        action="{% url 'vincular_cliente_orcamento' orcamento.pk %}"
+                        class="orcamento-link-form"
+                    >
+                        {% csrf_token %}
+                        <label for="{{ vinculo_form.cliente.id_for_label }}">Vincular cliente existente</label>
+                        {{ vinculo_form.cliente }}
+                        {{ vinculo_form.cliente.errors }}
+                        <button type="submit" class="hf-btn hf-btn-primary">
+                            <i class="bi bi-link-45deg"></i>
+                            <span>Vincular cliente</span>
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="muted-copy orcamento-helper-copy">Cadastre um cliente para habilitar o vinculo manual.</p>
+                {% endif %}
+            </article>
+
+            <article class="dashboard-card orcamento-panel">
+                <header>
+                    <h2>Acoes</h2>
+                    <span class="status-pill status-gray">Operacao</span>
+                </header>
+
+                <div class="orcamento-action-list">
                     {% if not orcamento.aprovado %}
                         <form
                             method="post"
@@ -87,7 +228,10 @@
                             data-hf-confirm-button="Concluir"
                         >
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-success">Concluir</button>
+                            <button type="submit" class="hf-btn hf-btn-primary">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Concluir</span>
+                            </button>
                         </form>
                     {% endif %}
                     {% if not orcamento.cliente %}
@@ -102,15 +246,235 @@
                             data-hf-confirm-button="Cadastrar"
                         >
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-success">Cadastrar cliente</button>
+                            <button type="submit" class="hf-btn hf-btn-light">
+                                <i class="bi bi-person-plus"></i>
+                                <span>Cadastrar cliente</span>
+                            </button>
                         </form>
                     {% endif %}
-                    <a class="btn btn-primary" href="{% url 'gerar_orcamento_pdf' orcamento.pk %}">Gerar PDF</a>
+                    <a class="hf-btn hf-btn-light" href="{% url 'editar_orcamento' orcamento.pk %}">
+                        <i class="bi bi-pencil-square"></i>
+                        <span>Editar orcamento</span>
+                    </a>
+                    <a class="hf-btn hf-btn-light" href="{% url 'gerar_orcamento_pdf' orcamento.pk %}">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        <span>Gerar PDF</span>
+                    </a>
+                    <form
+                        method="post"
+                        action="{% url 'deletar_orcamento' orcamento.pk %}"
+                        class="m-0"
+                        data-hf-confirm
+                        data-hf-confirm-icon="warning"
+                        data-hf-confirm-title="Excluir orcamento?"
+                        data-hf-confirm-text="Esta acao removera o orcamento permanentemente."
+                        data-hf-confirm-button="Excluir"
+                    >
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger">Excluir orcamento</button>
+                        <button type="submit" class="hf-btn hf-btn-light orcamento-danger-action">
+                            <i class="bi bi-trash"></i>
+                            <span>Excluir orcamento</span>
+                        </button>
                     </form>
                 </div>
-            </div>
+            </article>
         </aside>
     </section>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script>
+        (() => {
+            const wrapper = document.querySelector("[data-service-map]");
+            if (!wrapper || !window.L) {
+                return;
+            }
+
+            const canvas = wrapper.querySelector("[data-map-canvas]");
+            const status = wrapper.querySelector("[data-map-status]");
+            const locationButton = wrapper.querySelector("[data-use-location]");
+            const fullscreenButton = wrapper.querySelector("[data-map-fullscreen]");
+            if (!canvas) {
+                return;
+            }
+
+            let destination = null;
+            let routeControl = null;
+            let userMarker = null;
+
+            const map = L.map(canvas, {scrollWheelZoom: false}).setView([-14.235, -51.9253], 4);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19,
+            }).addTo(map);
+
+            function setStatus(message, tone = "muted") {
+                if (!status) {
+                    return;
+                }
+                status.textContent = message;
+                status.dataset.tone = tone;
+            }
+
+            function setButtonLoading(isLoading) {
+                if (!locationButton) {
+                    return;
+                }
+                locationButton.disabled = isLoading || !destination;
+                locationButton.innerHTML = isLoading
+                    ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Tracando rota'
+                    : '<i class="bi bi-crosshair"></i> Usar minha localizacao';
+            }
+
+            function syncMapSize() {
+                window.setTimeout(() => map.invalidateSize(), 120);
+            }
+
+            function setFullscreen(isFullscreen) {
+                wrapper.classList.toggle("is-fullscreen", isFullscreen);
+                document.body.classList.toggle("service-map-open", isFullscreen);
+                if (fullscreenButton) {
+                    fullscreenButton.innerHTML = isFullscreen
+                        ? '<i class="bi bi-fullscreen-exit"></i> Fechar tela cheia'
+                        : '<i class="bi bi-arrows-fullscreen"></i> Tela cheia';
+                }
+                syncMapSize();
+            }
+
+            function formatDistance(meters) {
+                if (!Number.isFinite(meters)) {
+                    return "-";
+                }
+                return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
+            }
+
+            function formatDuration(seconds) {
+                if (!Number.isFinite(seconds)) {
+                    return "-";
+                }
+                const minutes = Math.max(1, Math.round(seconds / 60));
+                if (minutes < 60) {
+                    return `${minutes} min`;
+                }
+                const hours = Math.floor(minutes / 60);
+                const rest = minutes % 60;
+                return rest ? `${hours} h ${rest} min` : `${hours} h`;
+            }
+
+            async function loadDestination() {
+                try {
+                    const response = await fetch(wrapper.dataset.locationUrl, {
+                        headers: {"Accept": "application/json"},
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok) {
+                        throw new Error(payload.error || "Nao foi possivel localizar o endereco.");
+                    }
+
+                    destination = L.latLng(
+                        payload.localizacao.latitude,
+                        payload.localizacao.longitude,
+                    );
+
+                    L.marker(destination)
+                        .addTo(map)
+                        .bindPopup("Local do servico");
+                    map.setView(destination, 16);
+
+                    if (locationButton) {
+                        locationButton.disabled = false;
+                    }
+                    setStatus("Endereco localizado. A rota pode ser tracada pela localizacao atual.", "success");
+                } catch (error) {
+                    setStatus(error.message, "error");
+                }
+            }
+
+            function traceRoute(origin) {
+                if (routeControl) {
+                    map.removeControl(routeControl);
+                }
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+
+                userMarker = L.marker(origin)
+                    .addTo(map)
+                    .bindPopup("Sua localizacao");
+
+                routeControl = L.Routing.control({
+                    waypoints: [origin, destination],
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true,
+                    routeWhileDragging: false,
+                    show: false,
+                    showAlternatives: false,
+                    lineOptions: {
+                        styles: [{color: "#2664eb", opacity: 0.85, weight: 6}],
+                    },
+                    createMarker: () => null,
+                    router: L.Routing.osrmv1({
+                        serviceUrl: "https://router.project-osrm.org/route/v1",
+                        profile: "driving",
+                    }),
+                }).addTo(map);
+
+                routeControl.on("routesfound", (event) => {
+                    const summary = event.routes[0]?.summary || {};
+                    setStatus(
+                        `Rota tracada: ${formatDistance(summary.totalDistance)} - ${formatDuration(summary.totalTime)}.`,
+                        "success",
+                    );
+                    setButtonLoading(false);
+                });
+
+                routeControl.on("routingerror", () => {
+                    setStatus("Nao foi possivel tracar a rota dentro do app. Use o Maps como alternativa.", "error");
+                    setButtonLoading(false);
+                });
+            }
+
+            locationButton?.addEventListener("click", () => {
+                if (!destination) {
+                    return;
+                }
+                if (!navigator.geolocation) {
+                    setStatus("Este navegador nao permite usar a localizacao atual.", "error");
+                    return;
+                }
+
+                setButtonLoading(true);
+                setStatus("Aguardando permissao de localizacao...", "muted");
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        traceRoute(L.latLng(position.coords.latitude, position.coords.longitude));
+                    },
+                    () => {
+                        setStatus("Nao foi possivel acessar sua localizacao.", "error");
+                        setButtonLoading(false);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 12000,
+                        maximumAge: 60000,
+                    },
+                );
+            });
+
+            fullscreenButton?.addEventListener("click", () => {
+                setFullscreen(!wrapper.classList.contains("is-fullscreen"));
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && wrapper.classList.contains("is-fullscreen")) {
+                    setFullscreen(false);
+                }
+            });
+
+            loadDestination();
+        })();
+    </script>
 {% endblock %}

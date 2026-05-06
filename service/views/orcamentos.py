@@ -1,5 +1,6 @@
 import textwrap
 from io import BytesIO
+from urllib.parse import quote_plus
 
 from django.contrib import messages
 from django.db.models import Q
@@ -10,9 +11,41 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from service.forms import OrcamentoForm
+from service.forms import ClienteVinculoOrcamentoForm, OrcamentoForm
 from service.models import Cliente, Orcamento
+from service.services.nominatim import (
+    NominatimLookupError,
+    NominatimService,
+    NominatimTemporaryUnavailableError,
+)
 from service.services.viacep import ViaCepLookupError, ViaCepService, ViaCepTemporaryUnavailableError
+
+
+def _endereco_para_mapa(orcamento: Orcamento) -> str:
+    partes = [
+        orcamento.logradouro,
+        orcamento.numero,
+        orcamento.bairro,
+        orcamento.cidade,
+        orcamento.uf,
+        orcamento.cep,
+    ]
+    endereco_estruturado = ", ".join(str(parte).strip() for parte in partes if parte)
+    return endereco_estruturado or (orcamento.endereco or "").strip()
+
+
+def _links_mapa_orcamento(orcamento: Orcamento) -> dict[str, str]:
+    endereco = _endereco_para_mapa(orcamento)
+    if not endereco:
+        return {}
+
+    query = quote_plus(endereco)
+    return {
+        "endereco": endereco,
+        "embed_url": f"https://www.google.com/maps?q={query}&output=embed",
+        "maps_url": f"https://www.google.com/maps/search/?api=1&query={query}",
+        "rota_url": f"https://www.google.com/maps/dir/?api=1&destination={query}&travelmode=driving",
+    }
 
 
 def _criar_ou_atualizar_cliente_do_orcamento(orcamento: Orcamento) -> Cliente:
@@ -72,27 +105,14 @@ def novo_orcamento(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = OrcamentoForm(request.POST)
         if form.is_valid():
-            itens = list(form.cleaned_data["itens"])
-            quantidade = form.cleaned_data["quantidade"]
-            valor_total = sum(item.valor for item in itens) * quantidade
-
             orcamento = Orcamento.objects.create(
-                name=form.cleaned_data["name"],
-                email=form.cleaned_data["email"],
-                telefone=form.cleaned_data["telefone"] or None,
-                endereco=form.cleaned_data["endereco"] or None,
-                cep=form.cleaned_data["cep"] or None,
-                logradouro=form.cleaned_data["logradouro"] or None,
-                numero=form.cleaned_data["numero"] or None,
-                complemento=form.cleaned_data["complemento"] or None,
-                bairro=form.cleaned_data["bairro"] or None,
-                cidade=form.cleaned_data["cidade"] or None,
-                uf=form.cleaned_data["uf"] or None,
-                descricao=form.cleaned_data["descricao"] or None,
-                quantidade=quantidade,
-                valor=valor_total,
+                name=form.cleaned_data["name"] or form.cleaned_data["cliente"].name,
+                email=form.cleaned_data["email"] or None,
+                quantidade=form.cleaned_data["quantidade"],
+                valor=0,
             )
-            orcamento.itens.set(itens)
+            _salvar_dados_orcamento(orcamento, form)
+            _aplicar_fluxo_cliente(orcamento, form)
 
             messages.success(request, "Orcamento criado com sucesso.")
             return redirect("orcamento_detalhe", pk=orcamento.pk)
@@ -104,6 +124,114 @@ def novo_orcamento(request: HttpRequest) -> HttpResponse:
     context = {
         "form": form,
         "orcamentos_recentes": Orcamento.objects.prefetch_related("itens").order_by("-id")[:5],
+    }
+    return render(request, "service/orcamento_form.html", context)
+
+
+def buscar_cliente_dados(request: HttpRequest, pk: int) -> JsonResponse:
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "error": "Metodo nao permitido."}, status=405)
+
+    cliente = get_object_or_404(Cliente, pk=pk)
+    return JsonResponse(
+        {
+            "ok": True,
+            "cliente": {
+                "id": cliente.pk,
+                "name": cliente.name,
+                "email": cliente.email,
+                "telefone": cliente.telefone or "",
+                "endereco": cliente.endereco or "",
+                "cep": cliente.cep or "",
+                "logradouro": cliente.logradouro or "",
+                "numero": cliente.numero or "",
+                "complemento": cliente.complemento or "",
+                "bairro": cliente.bairro or "",
+                "cidade": cliente.cidade or "",
+                "uf": cliente.uf or "",
+            },
+        }
+    )
+
+
+def _orcamento_initial(orcamento: Orcamento) -> dict:
+    return {
+        "cliente": orcamento.cliente_id,
+        "name": orcamento.name,
+        "email": orcamento.email,
+        "telefone": orcamento.telefone,
+        "cep": orcamento.cep,
+        "logradouro": orcamento.logradouro,
+        "numero": orcamento.numero,
+        "complemento": orcamento.complemento,
+        "bairro": orcamento.bairro,
+        "cidade": orcamento.cidade,
+        "uf": orcamento.uf,
+        "endereco": orcamento.endereco,
+        "descricao": orcamento.descricao,
+        "quantidade": orcamento.quantidade,
+        "itens": list(orcamento.itens.values_list("pk", flat=True)),
+        "criar_cliente_automatico": False,
+    }
+
+
+def _salvar_dados_orcamento(orcamento: Orcamento, form: OrcamentoForm) -> Orcamento:
+    itens = list(form.cleaned_data["itens"])
+    quantidade = form.cleaned_data["quantidade"]
+
+    orcamento.name = form.cleaned_data["name"]
+    orcamento.email = form.cleaned_data["email"]
+    orcamento.telefone = form.cleaned_data["telefone"] or None
+    orcamento.endereco = form.cleaned_data["endereco"] or None
+    orcamento.cep = form.cleaned_data["cep"] or None
+    orcamento.logradouro = form.cleaned_data["logradouro"] or None
+    orcamento.numero = form.cleaned_data["numero"] or None
+    orcamento.complemento = form.cleaned_data["complemento"] or None
+    orcamento.bairro = form.cleaned_data["bairro"] or None
+    orcamento.cidade = form.cleaned_data["cidade"] or None
+    orcamento.uf = form.cleaned_data["uf"] or None
+    orcamento.descricao = form.cleaned_data["descricao"] or None
+    orcamento.quantidade = quantidade
+    orcamento.valor = sum(item.valor for item in itens) * quantidade
+    orcamento.cliente = form.cleaned_data.get("cliente") or orcamento.cliente
+    orcamento.save()
+    orcamento.itens.set(itens)
+    return orcamento
+
+
+def _aplicar_fluxo_cliente(orcamento: Orcamento, form: OrcamentoForm) -> None:
+    cliente = form.cleaned_data.get("cliente")
+    if cliente:
+        orcamento.cliente = cliente
+        orcamento.save(update_fields=["cliente", "updated_at"])
+        return
+
+    if form.cleaned_data.get("criar_cliente_automatico"):
+        cliente = _criar_ou_atualizar_cliente_do_orcamento(orcamento)
+        orcamento.cliente = cliente
+        orcamento.save(update_fields=["cliente", "updated_at"])
+
+
+def editar_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
+    orcamento = get_object_or_404(Orcamento.objects.prefetch_related("itens"), pk=pk)
+
+    if request.method == "POST":
+        form = OrcamentoForm(request.POST)
+        if form.is_valid():
+            _salvar_dados_orcamento(orcamento, form)
+            _aplicar_fluxo_cliente(orcamento, form)
+            messages.success(request, "Orcamento atualizado com sucesso.")
+            return redirect("orcamento_detalhe", pk=orcamento.pk)
+    else:
+        form = OrcamentoForm(initial=_orcamento_initial(orcamento))
+
+    context = {
+        "form": form,
+        "orcamento": orcamento,
+        "orcamentos_recentes": Orcamento.objects.prefetch_related("itens").exclude(pk=orcamento.pk).order_by("-id")[:5],
+        "form_title": "Editar orcamento",
+        "form_intro": "Atualize os dados do cliente, endereco, itens e quantidade deste orcamento.",
+        "form_submit_label": "Salvar alteracoes",
     }
     return render(request, "service/orcamento_form.html", context)
 
@@ -122,6 +250,42 @@ def buscar_endereco_cep(request: HttpRequest, cep: str) -> JsonResponse:
     return JsonResponse({"ok": True, "endereco": endereco.as_dict()})
 
 
+def buscar_mapa_orcamento(request: HttpRequest, pk: int) -> JsonResponse:
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "error": "Metodo nao permitido."}, status=405)
+
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    endereco = _endereco_para_mapa(orcamento)
+    if not endereco:
+        return JsonResponse(
+            {"ok": False, "error": "Cadastre o endereco do servico para visualizar o mapa."},
+            status=400,
+        )
+
+    try:
+        localizacao = NominatimService().geocodificar(
+            endereco=endereco,
+            cep=orcamento.cep or "",
+            logradouro=orcamento.logradouro or orcamento.endereco or "",
+            numero=orcamento.numero or "",
+            bairro=orcamento.bairro or "",
+            cidade=orcamento.cidade or "",
+            uf=orcamento.uf or "",
+        )
+    except NominatimTemporaryUnavailableError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=503)
+    except NominatimLookupError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "endereco": endereco,
+            "localizacao": localizacao.as_dict(),
+        }
+    )
+
+
 def detalhe_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
     orcamento = get_object_or_404(
         Orcamento.objects.prefetch_related("itens", "cliente"),
@@ -130,8 +294,30 @@ def detalhe_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
     context = {
         "orcamento": orcamento,
         "itens": orcamento.itens.all(),
+        "mapa": _links_mapa_orcamento(orcamento),
+        "vinculo_form": ClienteVinculoOrcamentoForm(
+            initial={"cliente": orcamento.cliente_id} if orcamento.cliente_id else None
+        ),
+        "total_clientes": Cliente.objects.count(),
     }
     return render(request, "service/orcamento_detalhe.html", context)
+
+
+def vincular_cliente_orcamento(request: HttpRequest, pk: int) -> HttpResponse:
+    if request.method != "POST":
+        return redirect("orcamento_detalhe", pk=pk)
+
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    form = ClienteVinculoOrcamentoForm(request.POST)
+    if form.is_valid():
+        cliente = form.cleaned_data["cliente"]
+        orcamento.cliente = cliente
+        orcamento.save(update_fields=["cliente", "updated_at"])
+        messages.success(request, f"Cliente '{cliente.name}' vinculado ao orcamento.")
+    else:
+        messages.error(request, "Selecione um cliente valido para vincular ao orcamento.")
+
+    return redirect("orcamento_detalhe", pk=pk)
 
 
 def deletar_orcamento(request: HttpRequest, pk: int) -> HttpResponse:

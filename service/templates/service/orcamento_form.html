@@ -1,21 +1,20 @@
 {% extends "service/base.html" %}
 
-{% block title %}Novo Orcamento | ERP Higienizacao{% endblock %}
+{% block title %}{{ form_title|default:"Novo Orcamento" }} | ERP Higienizacao{% endblock %}
 
 {% block content %}
     <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
         <span class="badge rounded-pill px-3 py-2 mb-3">Orcamentos</span>
-        <h1 class="display-6 fw-semibold">Monte um orcamento inicial com os itens do seu catalogo.</h1>
+        <h1 class="display-6 fw-semibold">{{ form_title|default:"Monte um orcamento inicial com os itens do seu catalogo." }}</h1>
         <p class="mb-0 text-white-50">
-            Esta tela ja salva o cliente, a quantidade, os itens escolhidos e o valor
-            total calculado automaticamente.
+            {{ form_intro|default:"Esta tela ja salva o cliente, a quantidade, os itens escolhidos e o valor total calculado automaticamente." }}
         </p>
     </section>
 
     <section class="row g-4">
         <article class="col-12 col-xl-8">
             <div class="content-card p-4">
-                <h2 class="h4 mb-4">Novo orcamento</h2>
+                <h2 class="h4 mb-4">{{ form_title|default:"Novo orcamento" }}</h2>
                 <form method="post" class="row g-3" data-cep-url-template="{% url 'buscar_endereco_cep' '00000000' %}">
                 {% csrf_token %}
 
@@ -114,7 +113,7 @@
                 </div>
 
                 <div class="col-12">
-                    <button type="submit" class="btn btn-success">Salvar orcamento</button>
+                    <button type="submit" class="btn btn-success">{{ form_submit_label|default:"Salvar orcamento" }}</button>
                 </div>
             </form>
                 </div>

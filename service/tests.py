@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from service.models import CategoriaCatalogo, Cliente, Orcamento, Service_catalog
+from service.services.nominatim import LocalizacaoMapa, NominatimService
 from service.services.viacep import EnderecoViaCep
 
 
@@ -298,12 +299,136 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(payload["endereco"]["logradouro"], "Praca da Se")
         self.assertEqual(payload["endereco"]["cidade"], "Sao Paulo")
 
+    @patch("service.views.orcamentos.NominatimService")
+    def test_busca_mapa_do_orcamento(self, service_mock):
+        orcamento = Orcamento.objects.create(
+            name="Cliente Mapa",
+            email="mapa@teste.com",
+            cep="01001-000",
+            logradouro="Praca da Se",
+            numero="100",
+            bairro="Se",
+            cidade="Sao Paulo",
+            uf="SP",
+            endereco="Praca da Se, 100 - Se, Sao Paulo - SP",
+            quantidade=1,
+            valor=120.0,
+        )
+        service_mock.return_value.geocodificar.return_value = LocalizacaoMapa(
+            latitude=-23.55052,
+            longitude=-46.633308,
+            display_name="Praca da Se, Sao Paulo",
+        )
+
+        response = self.client.get(reverse("buscar_mapa_orcamento", args=[orcamento.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["localizacao"]["latitude"], -23.55052)
+        self.assertEqual(payload["localizacao"]["longitude"], -46.633308)
+        service_mock.return_value.geocodificar.assert_called_once()
+        self.assertEqual(
+            service_mock.return_value.geocodificar.call_args.kwargs["endereco"],
+            "Praca da Se, 100, Se, Sao Paulo, SP, 01001-000",
+        )
+
+    def test_nominatim_tenta_variacoes_de_endereco(self):
+        service = NominatimService()
+
+        with patch.object(
+            service,
+            "_get_json",
+            side_effect=[
+                [],
+                [],
+                [
+                    {
+                        "lat": "-23.55052",
+                        "lon": "-46.633308",
+                        "display_name": "Rua localizada",
+                    }
+                ],
+            ],
+        ) as get_json_mock:
+            localizacao = service.geocodificar(
+                endereco="Rua Orlando Mohallen, 298 | Medicina | Itajubá - MG",
+                cep="37502-118",
+                logradouro="Rua Orlando Mohallen",
+                numero="298",
+                bairro="Medicina",
+                cidade="Itajubá",
+                uf="MG",
+            )
+
+        self.assertEqual(localizacao.latitude, -23.55052)
+        self.assertEqual(get_json_mock.call_count, 3)
+
     def test_novo_orcamento_preseleciona_item_do_catalogo(self):
         response = self.client.get(f"{reverse('novo_orcamento')}?item={self.item_a.pk}")
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.item_a.name)
         self.assertContains(response, f'value="{self.item_a.pk}" selected')
+
+    def test_edita_orcamento_e_recalcula_total(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente Editar",
+            email="editar@teste.com",
+            telefone="11988887777",
+            endereco="Rua Antiga, 10",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+
+        response = self.client.post(
+            reverse("editar_orcamento", args=[orcamento.pk]),
+            {
+                "name": "Cliente Editado",
+                "email": "editado@teste.com",
+                "telefone": "11911112222",
+                "cep": "37502-118",
+                "logradouro": "Rua Orlando Mohallen",
+                "numero": "298",
+                "complemento": "",
+                "bairro": "Medicina",
+                "cidade": "Itajuba",
+                "uf": "mg",
+                "descricao": "Orcamento atualizado",
+                "quantidade": 2,
+                "itens": [self.item_a.pk, self.item_b.pk],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        orcamento.refresh_from_db()
+        self.assertEqual(orcamento.name, "Cliente Editado")
+        self.assertEqual(orcamento.uf, "MG")
+        self.assertEqual(orcamento.valor, 400.0)
+        self.assertEqual(orcamento.itens.count(), 2)
+
+    def test_vincula_cliente_existente_ao_orcamento(self):
+        cliente = Cliente.objects.create(
+            name="Cliente Existente",
+            email="existente@teste.com",
+        )
+        orcamento = Orcamento.objects.create(
+            name="Cliente Orcamento",
+            email="orcamento@teste.com",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+
+        response = self.client.post(
+            reverse("vincular_cliente_orcamento", args=[orcamento.pk]),
+            {"cliente": cliente.pk},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        orcamento.refresh_from_db()
+        self.assertEqual(orcamento.cliente, cliente)
 
     def test_conclui_orcamento_sem_criar_cliente(self):
         orcamento = Orcamento.objects.create(

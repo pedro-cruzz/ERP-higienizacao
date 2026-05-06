@@ -173,13 +173,26 @@ class ClienteForm(forms.ModelForm):
 
 
 class OrcamentoForm(forms.Form):
+    cliente = forms.ModelChoiceField(
+        label="Cliente ja cadastrado",
+        queryset=Cliente.objects.none(),
+        required=False,
+        empty_label="Preencher manualmente ou selecionar cliente",
+        widget=forms.Select(),
+    )
+    criar_cliente_automatico = forms.BooleanField(
+        label="Criar cliente automaticamente ao salvar",
+        required=False,
+    )
     name = forms.CharField(
         label="Nome do cliente",
         max_length=100,
+        required=False,
         widget=forms.TextInput(attrs={"placeholder": "Ex.: Maria Souza"}),
     )
     email = forms.EmailField(
         label="Email",
+        required=False,
         widget=forms.EmailInput(attrs={"placeholder": "cliente@empresa.com"}),
     )
     telefone = forms.CharField(
@@ -254,8 +267,11 @@ class OrcamentoForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.order_by("name", "email")
         self.fields["itens"].queryset = Service_catalog.objects.select_related("categoria").order_by("categoria__name", "tipo", "name")
         self.fields["itens"].label_from_instance = self._catalogo_item_label
+        self.fields["cliente"].widget.attrs["class"] = "form-select"
+        self.fields["criar_cliente_automatico"].widget.attrs["class"] = "form-check-input"
         self.fields["name"].widget.attrs["class"] = "form-control"
         self.fields["email"].widget.attrs["class"] = "form-control"
         self.fields["telefone"].widget.attrs["class"] = "form-control"
@@ -278,9 +294,46 @@ class OrcamentoForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+        cliente = cleaned_data.get("cliente")
+        if cliente:
+            for field_name in [
+                "name",
+                "email",
+                "telefone",
+                "cep",
+                "logradouro",
+                "numero",
+                "complemento",
+                "bairro",
+                "cidade",
+                "uf",
+                "endereco",
+            ]:
+                if not cleaned_data.get(field_name):
+                    cleaned_data[field_name] = getattr(cliente, field_name, None) or ""
+            cleaned_data["criar_cliente_automatico"] = False
+
         cleaned_data["uf"] = (cleaned_data.get("uf") or "").strip().upper()
         cleaned_data["endereco"] = montar_endereco_limpo(cleaned_data) or (cleaned_data.get("endereco") or "").strip()
+        if not cleaned_data.get("cliente") and not cleaned_data.get("name"):
+            self.add_error("name", "Informe o nome do cliente ou selecione um cliente cadastrado.")
+        if cleaned_data.get("criar_cliente_automatico") and not cleaned_data.get("email"):
+            self.add_error("email", "Informe um email para criar o cliente automaticamente.")
         return cleaned_data
+
+
+class ClienteVinculoOrcamentoForm(forms.Form):
+    cliente = forms.ModelChoiceField(
+        label="Cliente cadastrado",
+        queryset=Cliente.objects.none(),
+        empty_label="Selecione um cliente",
+        widget=forms.Select(),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.order_by("name", "email")
+        self.fields["cliente"].widget.attrs["class"] = "form-select"
 
 
 def montar_endereco_limpo(cleaned_data: dict) -> str:

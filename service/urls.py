@@ -3,6 +3,7 @@ from django.urls import path
 from service.views import (
     aprovar_orcamento,
     buscar_endereco_cep,
+    buscar_mapa_orcamento,
     cadastrar_cliente_orcamento,
     catalogo,
     concluir_orcamento,
@@ -10,6 +11,7 @@ from service.views import (
     deletar_orcamento,
     deletar_produto,
     detalhe_orcamento,
+    editar_orcamento,
     editar_produto,
     gerar_orcamento_pdf,
     inicio,
@@ -21,6 +23,7 @@ from service.views import (
     novo_orcamento,
     novo_produto,
     teste,
+    vincular_cliente_orcamento,
 )
 
 urlpatterns = [
@@ -39,6 +42,8 @@ urlpatterns = [
     path("orcamentos/novo/", novo_orcamento, name="novo_orcamento"),
     path("orcamentos/cep/<str:cep>/", buscar_endereco_cep, name="buscar_endereco_cep"),
     path("orcamentos/<int:pk>/", detalhe_orcamento, name="orcamento_detalhe"),
+    path("orcamentos/<int:pk>/editar/", editar_orcamento, name="editar_orcamento"),
+    path("orcamentos/<int:pk>/mapa/", buscar_mapa_orcamento, name="buscar_mapa_orcamento"),
     path("orcamentos/<int:pk>/pdf/", gerar_orcamento_pdf, name="gerar_orcamento_pdf"),
     path("orcamentos/<int:pk>/concluir/", concluir_orcamento, name="concluir_orcamento"),
     path(
@@ -46,6 +51,7 @@ urlpatterns = [
         cadastrar_cliente_orcamento,
         name="cadastrar_cliente_orcamento",
     ),
+    path("orcamentos/<int:pk>/vincular-cliente/", vincular_cliente_orcamento, name="vincular_cliente_orcamento"),
     path("orcamentos/<int:pk>/aprovar/", aprovar_orcamento, name="aprovar_orcamento"),
     path("orcamentos/<int:pk>/deletar/", deletar_orcamento, name="deletar_orcamento"),
 ]

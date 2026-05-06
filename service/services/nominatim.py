@@ -48,6 +48,7 @@ class NominatimService:
     def geocodificar(
         self,
         *,
+        endereco: str = "",
         cep: str = "",
         logradouro: str = "",
         numero: str = "",
@@ -55,38 +56,118 @@ class NominatimService:
         cidade: str = "",
         uf: str = "",
     ) -> LocalizacaoMapa:
-        partes = [
-            logradouro.strip(),
-            numero.strip(),
-            bairro.strip(),
-            cidade.strip(),
-            uf.strip().upper(),
-            cep.strip(),
-            "Brasil",
-        ]
-        query = ", ".join(parte for parte in partes if parte)
-        if len(query) < 8:
+        queries = self._montar_consultas(
+            endereco=endereco,
+            cep=cep,
+            logradouro=logradouro,
+            numero=numero,
+            bairro=bairro,
+            cidade=cidade,
+            uf=uf,
+        )
+        if not queries:
             raise NominatimLookupError("Preencha um endereco mais completo para localizar no mapa.")
 
-        payload = self._get_json(
+        payload = self._buscar_estruturado(
+            cep=cep,
+            logradouro=logradouro,
+            numero=numero,
+            cidade=cidade,
+            uf=uf,
+        )
+        if isinstance(payload, list) and payload:
+            item = payload[0]
+            return LocalizacaoMapa(
+                latitude=float(item["lat"]),
+                longitude=float(item["lon"]),
+                display_name=item.get("display_name", queries[0]),
+            )
+
+        for query in queries:
+            payload = self._get_json(
+                "/search",
+                {
+                    "q": query,
+                    "format": "jsonv2",
+                    "limit": "1",
+                    "countrycodes": "br",
+                    "addressdetails": "1",
+                },
+            )
+            if isinstance(payload, list) and payload:
+                item = payload[0]
+                return LocalizacaoMapa(
+                    latitude=float(item["lat"]),
+                    longitude=float(item["lon"]),
+                    display_name=item.get("display_name", query),
+                )
+
+        raise NominatimLookupError("Nao foi possivel localizar esse endereco no mapa.")
+
+    def _buscar_estruturado(
+        self,
+        *,
+        cep: str,
+        logradouro: str,
+        numero: str,
+        cidade: str,
+        uf: str,
+    ) -> list[dict]:
+        if not logradouro or not cidade:
+            return []
+
+        street = " ".join(parte for parte in [numero.strip(), logradouro.strip()] if parte)
+        return self._get_json(
             "/search",
             {
-                "q": query,
+                "street": street,
+                "city": cidade.strip(),
+                "state": uf.strip().upper(),
+                "postalcode": cep.strip(),
+                "country": "Brasil",
                 "format": "jsonv2",
                 "limit": "1",
                 "countrycodes": "br",
                 "addressdetails": "1",
             },
         )
-        if not isinstance(payload, list) or not payload:
-            raise NominatimLookupError("Nao foi possivel localizar esse endereco no mapa.")
 
-        item = payload[0]
-        return LocalizacaoMapa(
-            latitude=float(item["lat"]),
-            longitude=float(item["lon"]),
-            display_name=item.get("display_name", query),
-        )
+    def _montar_consultas(
+        self,
+        *,
+        endereco: str,
+        cep: str,
+        logradouro: str,
+        numero: str,
+        bairro: str,
+        cidade: str,
+        uf: str,
+    ) -> list[str]:
+        endereco = endereco.strip()
+        cep = cep.strip()
+        logradouro = logradouro.strip()
+        numero = numero.strip()
+        bairro = bairro.strip()
+        cidade = cidade.strip()
+        uf = uf.strip().upper()
+
+        variacoes = [
+            [endereco, cep, "Brasil"],
+            [logradouro, numero, bairro, cidade, uf, cep, "Brasil"],
+            [logradouro, numero, cidade, uf, "Brasil"],
+            [logradouro, numero, cep, "Brasil"],
+            [logradouro, bairro, cidade, uf, "Brasil"],
+            [logradouro, cidade, uf, "Brasil"],
+            [cep, cidade, uf, "Brasil"],
+            [cep, "Brasil"],
+        ]
+
+        consultas = []
+        for partes in variacoes:
+            query = ", ".join(parte for parte in partes if parte)
+            if len(query) >= 8 and query not in consultas:
+                consultas.append(query)
+        return consultas
 
     def _get_json(self, path: str, params: dict[str, str]) -> list[dict]:
         url = f"{self.base_url}{path}?{urlencode(params)}"
