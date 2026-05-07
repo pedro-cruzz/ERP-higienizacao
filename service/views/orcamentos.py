@@ -469,7 +469,7 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     first_table_top = 514
     next_table_top = 718
     last_table_bottom = 224
-    continue_table_bottom = 84
+    continue_table_bottom = 112
 
     def pdf_text(value: object, fallback: str = "-") -> str:
         text = " ".join(str(value or fallback).split())
@@ -913,10 +913,10 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     def draw_continuation_note() -> None:
         pdf.setFillColor(surface)
-        pdf.roundRect(margin, 38, content_w, 30, 10, stroke=0, fill=1)
+        pdf.roundRect(margin, 72, content_w, 28, 10, stroke=0, fill=1)
         pdf.setFillColor(muted)
         pdf.setFont("Helvetica", 8.5)
-        pdf.drawString(margin + 14, 49, "Continua na proxima pagina com mais servicos e o resumo final.")
+        pdf.drawString(margin + 14, 82, "Continua na proxima pagina com mais servicos e o resumo final.")
 
     def draw_footer(page_number: int, total_pages: int) -> None:
         pdf.setStrokeColor(line)

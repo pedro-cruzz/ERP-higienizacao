@@ -667,3 +667,50 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_gera_pdf_com_muitos_itens_e_textos_longos(self):
+        itens = []
+        for index in range(14):
+            itens.append(
+                Service_catalog.objects.create(
+                    name=f"Servico profissional com nome longo para validar quebra de linha {index}",
+                    tipo="Higienizacao residencial especializada",
+                    valor=75 + index,
+                    descricao=(
+                        "Descricao detalhada do procedimento, materiais, acabamento tecnico "
+                        "e cuidados de execucao para nao estourar o layout do PDF."
+                    ),
+                    tecido="Suede premium com tratamento impermeabilizante",
+                    tamanho="Grande",
+                )
+            )
+        orcamento = Orcamento.objects.create(
+            name="Cliente com nome muito longo para proposta comercial profissional",
+            email="cliente-com-email-longo-para-pdf@teste.com",
+            telefone="11999998888",
+            endereco=(
+                "Rua com endereco bastante extenso, 1234, complemento amplo, "
+                "bairro central, cidade de teste - SP"
+            ),
+            quantidade=3,
+            valor=sum(item.valor for item in itens) * 3,
+            descricao="Mensagem final personalizada com texto maior para testar o bloco de observacoes.",
+        )
+        orcamento.itens.set(itens)
+
+        response = self.client.post(
+            reverse("gerar_orcamento_pdf", args=[orcamento.pk]),
+            {
+                "pdf_brand": "Empresa Profissional de Higienizacao e Conservacao",
+                "pdf_phrase": (
+                    "Obrigado pela oportunidade. Esta proposta foi preparada com cuidado "
+                    "para atender os pontos tecnicos do servico solicitado."
+                ),
+                "pdf_accent_color": "#14532D",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertGreater(len(response.content), 3000)
