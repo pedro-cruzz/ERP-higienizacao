@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -616,4 +617,53 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertIn(f'orcamento-{orcamento.pk}.pdf', response["Content-Disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_detalhe_exibe_modal_de_personalizacao_do_pdf(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente Modal PDF",
+            email="modal-pdf@teste.com",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+
+        response = self.client.get(reverse("orcamento_detalhe", args=[orcamento.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Personalizar PDF")
+        self.assertContains(response, 'name="pdf_phrase"')
+        self.assertContains(response, 'name="pdf_logo"')
+
+    def test_gera_pdf_personalizado_com_logo_e_frase(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente PDF Personalizado",
+            email="pdf-personalizado@teste.com",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+        logo = SimpleUploadedFile(
+            "logo.png",
+            (
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+                b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+                b"\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe"
+                b"\x02\xfeA\xe2%\xb3\x00\x00\x00\x00IEND\xaeB`\x82"
+            ),
+            content_type="image/png",
+        )
+
+        response = self.client.post(
+            reverse("gerar_orcamento_pdf", args=[orcamento.pk]),
+            {
+                "pdf_brand": "Minha Empresa",
+                "pdf_phrase": "Frase personalizada para o cliente.",
+                "pdf_accent_color": "#14532D",
+                "pdf_logo": logo,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))

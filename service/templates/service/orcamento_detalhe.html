@@ -18,10 +18,15 @@
                 <i class="bi bi-arrow-left"></i>
                 <span>Voltar</span>
             </a>
-            <a href="{% url 'gerar_orcamento_pdf' orcamento.pk %}" class="hf-btn hf-btn-primary">
+            <button
+                type="button"
+                class="hf-btn hf-btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#pdfCustomizationModal"
+            >
                 <i class="bi bi-file-earmark-pdf"></i>
                 <span>Gerar PDF</span>
-            </a>
+            </button>
             <a href="{% url 'editar_orcamento' orcamento.pk %}" class="hf-btn hf-btn-light">
                 <i class="bi bi-pencil-square"></i>
                 <span>Editar</span>
@@ -256,10 +261,15 @@
                         <i class="bi bi-pencil-square"></i>
                         <span>Editar orcamento</span>
                     </a>
-                    <a class="hf-btn hf-btn-light" href="{% url 'gerar_orcamento_pdf' orcamento.pk %}">
+                    <button
+                        type="button"
+                        class="hf-btn hf-btn-light"
+                        data-bs-toggle="modal"
+                        data-bs-target="#pdfCustomizationModal"
+                    >
                         <i class="bi bi-file-earmark-pdf"></i>
                         <span>Gerar PDF</span>
-                    </a>
+                    </button>
                     <form
                         method="post"
                         action="{% url 'deletar_orcamento' orcamento.pk %}"
@@ -280,6 +290,83 @@
             </article>
         </aside>
     </section>
+
+    <div
+        class="modal fade hf-pdf-modal"
+        id="pdfCustomizationModal"
+        tabindex="-1"
+        aria-labelledby="pdfCustomizationModalLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-dialog-centered">
+            <form
+                method="post"
+                action="{% url 'gerar_orcamento_pdf' orcamento.pk %}"
+                enctype="multipart/form-data"
+                class="modal-content hf-pdf-modal-content"
+            >
+                {% csrf_token %}
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title" id="pdfCustomizationModalLabel">Personalizar PDF</h2>
+                        <p>Configure a proposta antes de baixar.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="pdf-customization-grid">
+                        <label class="pdf-customization-field" for="pdf_brand">
+                            <span>Nome no cabecalho</span>
+                            <input
+                                id="pdf_brand"
+                                name="pdf_brand"
+                                type="text"
+                                value="ERP Higienizacao"
+                                maxlength="42"
+                                autocomplete="organization"
+                            >
+                        </label>
+
+                        <label class="pdf-customization-field" for="pdf_accent_color">
+                            <span>Cor de destaque</span>
+                            <input id="pdf_accent_color" name="pdf_accent_color" type="color" value="#2577B5">
+                        </label>
+
+                        <label class="pdf-customization-field pdf-customization-field-wide" for="pdf_phrase">
+                            <span>Frase para o cliente</span>
+                            <textarea
+                                id="pdf_phrase"
+                                name="pdf_phrase"
+                                rows="3"
+                                maxlength="180"
+                                placeholder="Ex.: Obrigado pela preferencia. Sera um prazer cuidar do seu ambiente."
+                            >{{ orcamento.descricao|default:"" }}</textarea>
+                        </label>
+
+                        <label class="pdf-logo-upload pdf-customization-field-wide" for="pdf_logo">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Logo da empresa</span>
+                            <small data-pdf-logo-name>PNG, JPG ou WEBP ate 3 MB</small>
+                            <input
+                                id="pdf_logo"
+                                name="pdf_logo"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                data-pdf-logo-input
+                            >
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="hf-btn hf-btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="hf-btn hf-btn-primary">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+                        <span>Gerar PDF</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -475,6 +562,19 @@
             });
 
             loadDestination();
+        })();
+
+        (() => {
+            const logoInput = document.querySelector("[data-pdf-logo-input]");
+            const logoName = document.querySelector("[data-pdf-logo-name]");
+            if (!logoInput || !logoName) {
+                return;
+            }
+
+            const defaultText = logoName.textContent;
+            logoInput.addEventListener("change", () => {
+                logoName.textContent = logoInput.files?.[0]?.name || defaultText;
+            });
         })();
     </script>
 {% endblock %}

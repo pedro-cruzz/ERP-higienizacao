@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from service.forms import ClienteVinculoOrcamentoForm, OrcamentoForm
@@ -403,6 +404,40 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     )
     itens = list(orcamento.itens.all())
 
+    def clean_text(value: str, limit: int) -> str:
+        return " ".join((value or "").split())[:limit]
+
+    def clean_color(value: str) -> str:
+        value = (value or "").strip()
+        if len(value) == 7 and value.startswith("#"):
+            hex_part = value[1:]
+            if all(char in "0123456789abcdefABCDEF" for char in hex_part):
+                return value
+        return "#2577B5"
+
+    def load_logo():
+        uploaded_logo = request.FILES.get("pdf_logo")
+        if not uploaded_logo:
+            return None
+
+        allowed_types = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+        if uploaded_logo.content_type not in allowed_types:
+            return None
+
+        logo_bytes = uploaded_logo.read(3 * 1024 * 1024 + 1)
+        if len(logo_bytes) > 3 * 1024 * 1024:
+            return None
+
+        try:
+            return ImageReader(BytesIO(logo_bytes))
+        except Exception:
+            return None
+
+    pdf_brand = clean_text(request.POST.get("pdf_brand", ""), 42) or "ERP Higienizacao"
+    pdf_phrase = clean_text(request.POST.get("pdf_phrase", ""), 180)
+    accent_color = clean_color(request.POST.get("pdf_accent_color", ""))
+    uploaded_logo = load_logo()
+
     page_width, page_height = A4
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -410,8 +445,8 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
     navy = colors.HexColor("#1D2C3C")
     ink = colors.HexColor("#263748")
-    blue = colors.HexColor("#3B97D3")
-    blue_dark = colors.HexColor("#2577B5")
+    blue = colors.HexColor(accent_color)
+    blue_dark = colors.HexColor(accent_color)
     aqua = colors.HexColor("#76C7D9")
     blue_pale = colors.HexColor("#EEF7FD")
     blue_glow = colors.HexColor("#DCECF8")
@@ -432,6 +467,20 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     def wrap_lines(value: str, width: int, max_lines: int = 2) -> list[str]:
         lines = textwrap.wrap(value or "-", width=width) or ["-"]
         return lines[:max_lines]
+
+    def draw_fitted_text(text: str, x: float, y: float, max_width: float, font_name: str, font_size: int) -> None:
+        size = font_size
+        while size > 12 and pdf.stringWidth(text, font_name, size) > max_width:
+            size -= 1
+        pdf.setFont(font_name, size)
+        if pdf.stringWidth(text, font_name, size) <= max_width:
+            pdf.drawString(x, y, text)
+            return
+
+        clipped = text
+        while clipped and pdf.stringWidth(f"{clipped}...", font_name, size) > max_width:
+            clipped = clipped[:-1]
+        pdf.drawString(x, y, f"{clipped}..." if clipped else text[:12])
 
     def item_detail_lines(item) -> list[str]:
         material = (
@@ -473,6 +522,7 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
         draw_card(main_x, main_y, main_w, main_h, 20)
 
     def draw_brand_block() -> None:
+        nonlocal uploaded_logo
         header_x = main_x + 28
         header_y = 662
         header_w = main_w - 56
@@ -484,24 +534,43 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
 
         icon_x = header_x + 24
         icon_y = header_y + 24
-        pdf.setFillColor(colors.white)
-        pdf.circle(icon_x + 16, icon_y + 18, 16, stroke=0, fill=1)
-        pdf.setStrokeColor(blue)
-        pdf.setLineWidth(4)
-        pdf.line(icon_x + 6, icon_y + 20, icon_x + 18, icon_y + 46)
-        pdf.line(icon_x + 18, icon_y + 46, icon_x + 34, icon_y + 26)
-        pdf.setStrokeColor(aqua)
-        pdf.line(icon_x + 8, icon_y + 18, icon_x + 18, icon_y + 8)
-        pdf.line(icon_x + 18, icon_y + 8, icon_x + 30, icon_y + 22)
+        if uploaded_logo is not None:
+            try:
+                logo_w, logo_h = uploaded_logo.getSize()
+                max_logo = 48
+                ratio = min(max_logo / logo_w, max_logo / logo_h)
+                draw_w = logo_w * ratio
+                draw_h = logo_h * ratio
+                pdf.setFillColor(colors.white)
+                pdf.roundRect(icon_x - 4, icon_y + 4, 56, 56, 14, stroke=0, fill=1)
+                pdf.drawImage(
+                    uploaded_logo,
+                    icon_x - 4 + (56 - draw_w) / 2,
+                    icon_y + 4 + (56 - draw_h) / 2,
+                    width=draw_w,
+                    height=draw_h,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+            except Exception:
+                uploaded_logo = None
+
+        if uploaded_logo is None:
+            pdf.setFillColor(colors.white)
+            pdf.circle(icon_x + 16, icon_y + 18, 16, stroke=0, fill=1)
+            pdf.setStrokeColor(blue)
+            pdf.setLineWidth(4)
+            pdf.line(icon_x + 6, icon_y + 20, icon_x + 18, icon_y + 46)
+            pdf.line(icon_x + 18, icon_y + 46, icon_x + 34, icon_y + 26)
+            pdf.setStrokeColor(aqua)
+            pdf.line(icon_x + 8, icon_y + 18, icon_x + 18, icon_y + 8)
+            pdf.line(icon_x + 18, icon_y + 8, icon_x + 30, icon_y + 22)
 
         pdf.setFillColor(colors.white)
-        pdf.setFont("Helvetica-Bold", 24)
-        pdf.drawString(header_x + 74, header_y + 58, "ERP")
-        pdf.setFillColor(aqua)
-        pdf.drawString(header_x + 122, header_y + 58, "Higienizacao")
+        draw_fitted_text(pdf_brand, header_x + 88, header_y + 58, header_w - 288, "Helvetica-Bold", 24)
         pdf.setFillColor(colors.HexColor("#D4E8F7"))
         pdf.setFont("Helvetica", 11)
-        pdf.drawString(header_x + 76, header_y + 38, "proposta comercial de servicos")
+        pdf.drawString(header_x + 90, header_y + 38, "proposta comercial de servicos")
 
         meta_x = header_x + header_w - 174
         meta_y = header_y + 18
@@ -655,7 +724,11 @@ def gerar_orcamento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
         pdf.drawCentredString(main_x + main_w - 130, footer_y + 2, "para aprovacao e agendamento")
 
     emission_date = timezone.localdate().strftime("%d/%m/%Y")
-    note_text = orcamento.descricao or "Valido mediante confirmacao da agenda, avaliacao tecnica e disponibilidade da equipe."
+    note_text = (
+        pdf_phrase
+        or orcamento.descricao
+        or "Valido mediante confirmacao da agenda, avaliacao tecnica e disponibilidade da equipe."
+    )
 
     remaining_items = itens[:]
     first_page_items = remaining_items[:4]

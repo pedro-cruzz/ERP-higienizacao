@@ -1064,6 +1064,119 @@ body.higiflow-app {
     border-color: rgba(180, 35, 24, 0.22);
 }
 
+.hf-pdf-modal-content {
+    border: 1px solid var(--hf-border);
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+}
+
+.hf-pdf-modal .modal-header,
+.hf-pdf-modal .modal-footer {
+    border-color: var(--hf-border);
+    padding: 20px 24px;
+}
+
+.hf-pdf-modal .modal-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+}
+
+.hf-pdf-modal .modal-header p {
+    margin: 4px 0 0;
+    color: var(--hf-muted);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.hf-pdf-modal .modal-body {
+    padding: 24px;
+}
+
+.pdf-customization-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px;
+    gap: 16px;
+}
+
+.pdf-customization-field {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.pdf-customization-field-wide {
+    grid-column: 1 / -1;
+}
+
+.pdf-customization-field > span,
+.pdf-logo-upload > span {
+    color: var(--hf-text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.pdf-customization-field input:not([type="file"]),
+.pdf-customization-field textarea {
+    width: 100%;
+    border: 1px solid var(--hf-border);
+    border-radius: 10px;
+    outline: 0;
+    background: #fff;
+    color: var(--hf-text);
+    font: inherit;
+}
+
+.pdf-customization-field input:not([type="file"]) {
+    height: 42px;
+    padding: 8px 12px;
+}
+
+.pdf-customization-field input[type="color"] {
+    padding: 4px;
+}
+
+.pdf-customization-field textarea {
+    min-height: 96px;
+    resize: vertical;
+    padding: 10px 12px;
+}
+
+.pdf-logo-upload {
+    position: relative;
+    min-height: 116px;
+    place-items: center;
+    gap: 6px;
+    border: 1px dashed rgba(38, 100, 235, 0.35);
+    border-radius: 12px;
+    background: rgba(38, 100, 235, 0.04);
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.pdf-logo-upload i {
+    color: var(--hf-blue);
+    font-size: 26px;
+}
+
+.pdf-logo-upload small {
+    max-width: 100%;
+    color: var(--hf-muted);
+    font-size: 13px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.pdf-logo-upload input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
 .service-map-card {
     overflow: hidden;
 }
@@ -1320,5 +1433,9 @@ body.service-map-open {
     .service-map-card.is-fullscreen {
         inset: 0;
         border-radius: 0;
+    }
+
+    .pdf-customization-grid {
+        grid-template-columns: 1fr;
     }
 }
