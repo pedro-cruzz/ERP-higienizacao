@@ -1,88 +1,138 @@
 {% extends "service/base.html" %}
 
-{% block title %}Orcamentos | HigiFlow{% endblock %}
+{% block title %}Orçamentos | HigiFlow{% endblock %}
 
 {% block content %}
-    <section class="hero-card card border-0 p-4 p-lg-5 mb-4">
-        <span class="badge rounded-pill px-3 py-2 mb-3">Orcamentos</span>
-        <h1 class="display-6 fw-semibold">Todos os orcamentos registrados no sistema.</h1>
-        <p class="mb-0 text-white-50">
-            Consulte valores, status e dados de contato antes de aprovar ou gerar o PDF.
-        </p>
-    </section>
-
-    <section class="content-card p-4 mb-4">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-12 col-lg-8">
-                <label for="q" class="form-label fw-semibold">Buscar orcamento</label>
-                <input id="q" name="q" value="{{ busca }}" placeholder="Nome, email, telefone ou observacao" class="form-control form-control-lg">
-            </div>
-            <div class="col-12 col-lg-4">
-                <button type="submit" class="btn btn-success btn-lg w-100">Buscar</button>
-            </div>
-        </form>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-            <a href="{% url 'novo_orcamento' %}" class="btn btn-success">Novo orcamento</a>
+    <section class="page-heading">
+        <div>
+            <h1>Orçamentos</h1>
+            <p>Gerencie todos os orçamentos criados</p>
         </div>
-        <p class="muted-copy mt-3 mb-0">Total encontrado: {{ total_orcamentos }} orcamento(s).</p>
+        <a href="{% url 'novo_orcamento' %}" class="hf-btn hf-btn-primary">
+            <i class="bi bi-plus-lg"></i>
+            <span>Novo Orçamento</span>
+        </a>
     </section>
 
-    <section class="section-card p-4">
-        <h2 class="h4 mb-4">Lista de orcamentos</h2>
-        {% if orcamentos %}
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead>
+    <section class="orcamento-summary-grid" aria-label="Resumo dos orçamentos">
+        <article class="orcamento-summary-card">
+            <span>Total</span>
+            <strong>{{ total_orcamentos }}</strong>
+        </article>
+        <article class="orcamento-summary-card">
+            <span>Rascunhos</span>
+            <strong class="summary-neutral">{{ total_rascunhos }}</strong>
+        </article>
+        <article class="orcamento-summary-card">
+            <span>Enviados</span>
+            <strong class="summary-blue">{{ total_enviados }}</strong>
+        </article>
+        <article class="orcamento-summary-card">
+            <span>Aprovados</span>
+            <strong class="summary-blue">{{ total_aprovados }}</strong>
+        </article>
+        <article class="orcamento-summary-card">
+            <span>Recusados</span>
+            <strong class="summary-red">{{ total_recusados }}</strong>
+        </article>
+    </section>
+
+    <section class="orcamentos-panel" aria-label="Lista de orçamentos">
+        <div class="leads-toolbar">
+            <form method="get" class="leads-search orcamentos-search">
+                <i class="bi bi-search"></i>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ busca }}"
+                    placeholder="Buscar por cliente, número ou serviço..."
+                    aria-label="Buscar por cliente, número ou serviço"
+                >
+            </form>
+            <button type="button" class="filter-button">
+                <i class="bi bi-funnel"></i>
+                <span>Filtros</span>
+            </button>
+        </div>
+
+        <div class="leads-table-wrap">
+            <table class="orcamentos-table">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                        <th>Validade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linha in orcamentos %}
                         <tr>
-                            <th>Cliente</th>
-                            <th>Contato</th>
-                            <th>Itens</th>
-                            <th>Status</th>
-                            <th>Valor</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for orcamento in orcamentos %}
-                            <tr>
-                                <td class="fw-semibold">{{ orcamento.name }}</td>
-                                <td>{{ orcamento.telefone|default:orcamento.email|default:"-" }}</td>
-                                <td>{{ orcamento.itens.count }}</td>
-                                <td>
-                                    {% if orcamento.aprovado %}
-                                        <span class="badge text-bg-success">Concluido</span>
-                                    {% else %}
-                                        <span class="badge text-bg-warning">Pendente</span>
+                            <td class="quote-number">{{ linha.numero }}</td>
+                            <td>
+                                <div class="quote-client">
+                                    <strong>{{ linha.cliente }}</strong>
+                                    <span>{{ linha.contato }}</span>
+                                </div>
+                            </td>
+                            <td>{{ linha.servico }}</td>
+                            <td class="quote-value">
+                                <span>R$</span>
+                                <strong>{{ linha.valor|floatformat:2 }}</strong>
+                            </td>
+                            <td>
+                                <span class="status-pill {{ linha.status_class }}">{{ linha.status_label }}</span>
+                            </td>
+                            <td>
+                                <span class="quote-date">
+                                    <i class="bi bi-calendar3"></i>
+                                    {{ linha.data|date:"d/m/Y" }}
+                                </span>
+                            </td>
+                            <td>{{ linha.validade|date:"d/m/Y" }}</td>
+                            <td>
+                                <div class="quote-actions">
+                                    <a href="{% url 'orcamento_detalhe' linha.obj.pk %}" class="quote-icon-button" aria-label="Abrir orçamento {{ linha.numero }}">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if linha.pode_enviar %}
+                                        <a href="{% url 'orcamento_detalhe' linha.obj.pk %}" class="quote-icon-button" aria-label="Preparar envio do orçamento {{ linha.numero }}">
+                                            <i class="bi bi-send"></i>
+                                        </a>
                                     {% endif %}
-                                </td>
-                                <td class="price-tag">R$ {{ orcamento.valor|floatformat:2 }}</td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-2">
-                                        <a href="{% url 'orcamento_detalhe' orcamento.pk %}" class="btn btn-outline-secondary btn-sm">Abrir</a>
-                                        <form
-                                            method="post"
-                                            action="{% url 'deletar_orcamento' orcamento.pk %}"
-                                            class="m-0"
-                                            data-hf-confirm
-                                            data-hf-confirm-icon="warning"
-                                            data-hf-confirm-title="Excluir orçamento?"
-                                            data-hf-confirm-text="Esta ação remove o orçamento e não pode ser desfeita."
-                                            data-hf-confirm-button="Excluir"
-                                        >
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                    <a href="{% url 'gerar_orcamento_pdf' linha.obj.pk %}" class="quote-icon-button" aria-label="Baixar PDF do orçamento {{ linha.numero }}">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <a href="{% url 'editar_orcamento' linha.obj.pk %}" class="quote-icon-button" aria-label="Editar orçamento {{ linha.numero }}">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8">
+                                <div class="table-empty">
+                                    Nenhum orçamento encontrado para a busca atual.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="orcamentos-pagination">
+            <p>Mostrando {{ total_filtrado }} de {{ total_orcamentos }} orçamentos</p>
+            <div>
+                <button type="button" class="pagination-button" disabled>Anterior</button>
+                <button type="button" class="pagination-button active">1</button>
+                <button type="button" class="pagination-button" disabled>Próximo</button>
             </div>
-        {% else %}
-            <div class="empty-state text-center p-5">
-                Nenhum orcamento cadastrado ainda.
-            </div>
-        {% endif %}
+        </footer>
     </section>
 {% endblock %}

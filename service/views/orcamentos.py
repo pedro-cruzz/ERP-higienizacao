@@ -1,4 +1,5 @@
 import textwrap
+from datetime import timedelta
 from io import BytesIO
 from urllib.parse import quote_plus
 
@@ -84,7 +85,8 @@ def _criar_ou_atualizar_cliente_do_orcamento(orcamento: Orcamento) -> Cliente:
 
 def listar_orcamentos(request: HttpRequest) -> HttpResponse:
     busca = request.GET.get("q", "").strip()
-    orcamentos = Orcamento.objects.prefetch_related("itens", "cliente").order_by("-created_at", "-id")
+    todos_orcamentos = Orcamento.objects.prefetch_related("itens", "cliente").order_by("-created_at", "-id")
+    orcamentos = todos_orcamentos
 
     if busca:
         orcamentos = orcamentos.filter(
@@ -94,10 +96,53 @@ def listar_orcamentos(request: HttpRequest) -> HttpResponse:
             | Q(descricao__icontains=busca)
         )
 
+    total_orcamentos = todos_orcamentos.count()
+    total_rascunhos = todos_orcamentos.filter(aprovado=False).filter(Q(email__isnull=True) | Q(email="")).count()
+    total_enviados = todos_orcamentos.filter(aprovado=False, email__isnull=False).exclude(email="").count()
+    total_aprovados = todos_orcamentos.filter(aprovado=True).count()
+
+    linhas_orcamentos = []
+    for orcamento in orcamentos:
+        itens = list(orcamento.itens.all())
+        servico = " + ".join(item.name for item in itens[:2]) if itens else (orcamento.descricao or "Serviço não informado")
+        if len(itens) > 2:
+            servico = f"{servico} +{len(itens) - 2}"
+
+        if orcamento.aprovado:
+            status_label = "Aprovado"
+            status_class = "status-soft-blue"
+        elif orcamento.email:
+            status_label = "Enviado"
+            status_class = "status-blue"
+        else:
+            status_label = "Rascunho"
+            status_class = "status-gray"
+
+        linhas_orcamentos.append(
+            {
+                "obj": orcamento,
+                "numero": f"#{orcamento.pk}",
+                "cliente": orcamento.name,
+                "contato": orcamento.telefone or orcamento.email or "-",
+                "servico": servico,
+                "valor": orcamento.valor,
+                "status_label": status_label,
+                "status_class": status_class,
+                "data": orcamento.created_at,
+                "validade": orcamento.created_at + timedelta(days=15),
+                "pode_enviar": not orcamento.aprovado,
+            }
+        )
+
     context = {
         "busca": busca,
-        "orcamentos": orcamentos,
-        "total_orcamentos": orcamentos.count(),
+        "orcamentos": linhas_orcamentos,
+        "total_orcamentos": total_orcamentos,
+        "total_filtrado": len(linhas_orcamentos),
+        "total_rascunhos": total_rascunhos,
+        "total_enviados": total_enviados,
+        "total_aprovados": total_aprovados,
+        "total_recusados": 0,
     }
     return render(request, "service/orcamentos.html", context)
 
