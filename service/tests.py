@@ -69,6 +69,14 @@ class ServiceViewsTests(TestCase):
         self.assertContains(response, "Cliente Dashboard")
         self.assertContains(response, "100%")
 
+    def test_agenda_retorna_ok(self):
+        response = self.client.get(reverse("agenda"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "agenda-calendar-card")
+        self.assertContains(response, "Gerencie os agendamentos de todas as equipes")
+        self.assertContains(response, "Pedro Lima")
+
     def test_cria_lead(self):
         response = self.client.post(
             reverse("novo_lead"),
