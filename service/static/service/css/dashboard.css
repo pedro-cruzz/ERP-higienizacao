@@ -1219,6 +1219,234 @@ body.higiflow-app {
     opacity: 1;
 }
 
+.service-orders-heading {
+    margin-bottom: 24px;
+}
+
+.service-orders-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+    gap: 24px;
+    width: 100%;
+    min-height: 438px;
+}
+
+.service-orders-column {
+    min-width: 0;
+    min-height: 438px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-radius: 10px;
+    padding: 16px;
+    background: rgba(236, 236, 240, 0.3);
+}
+
+.service-orders-column-header {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.service-orders-column-header h2 {
+    margin: 0;
+    color: var(--hf-text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.service-orders-column-header span {
+    min-width: 22px;
+    height: 24px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    padding: 4px 8px;
+    color: var(--hf-text);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.service-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.service-order-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-left: 4px solid #d1d5dc;
+    border-radius: 10px;
+    padding: 16px 16px 0 20px;
+    background: #fff;
+    box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.service-order-card-agendada,
+.service-order-card-concluida {
+    border-left-color: #8ec5ff;
+}
+
+.service-order-card-execucao {
+    border-left-color: #dab2ff;
+}
+
+.service-order-card-top,
+.service-order-card-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.service-order-number {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--hf-muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.service-order-number i {
+    color: var(--hf-muted);
+    font-size: 14px;
+}
+
+.service-order-status {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: #f3f4f6;
+    color: #364153;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.service-order-status-agendada,
+.service-order-status-concluida {
+    background: #eff6ff;
+    color: var(--hf-blue);
+}
+
+.service-order-status-execucao {
+    background: #f3e8ff;
+    color: #8200db;
+}
+
+.service-order-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.service-order-client,
+.service-order-service,
+.service-order-date {
+    margin: 0;
+}
+
+.service-order-client {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--hf-text);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.service-order-client i,
+.service-order-date i {
+    width: 14px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--hf-muted);
+    font-size: 14px;
+}
+
+.service-order-client strong {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.service-order-service {
+    overflow: hidden;
+    color: var(--hf-muted);
+    font-size: 14px;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.service-order-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--hf-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.service-order-card-footer {
+    min-height: 29px;
+    border-top: 1px solid var(--hf-border);
+    padding-top: 9px;
+}
+
+.service-order-card-footer strong,
+.service-order-card-footer a {
+    color: var(--hf-blue);
+    font-weight: 500;
+}
+
+.service-order-card-footer strong {
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.service-order-card-footer a {
+    font-size: 12px;
+    line-height: 16px;
+    text-align: right;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.service-order-card-footer a:hover {
+    text-decoration: underline;
+}
+
+.service-orders-empty {
+    display: grid;
+    min-height: 96px;
+    place-items: center;
+    border: 1px dashed rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 16px;
+    color: var(--hf-muted);
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    line-height: 18px;
+    text-align: center;
+}
+
 .orcamento-detail-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
@@ -1804,6 +2032,11 @@ body.service-map-open {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .service-orders-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
     .recent-grid {
         grid-template-columns: 1fr;
     }
@@ -1921,6 +2154,14 @@ body.service-map-open {
     .orcamentos-pagination div {
         justify-content: flex-start;
         overflow-x: auto;
+    }
+
+    .service-orders-board {
+        grid-template-columns: 1fr;
+    }
+
+    .service-orders-column {
+        min-height: auto;
     }
 
     .catalog-form {

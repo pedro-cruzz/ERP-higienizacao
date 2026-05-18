@@ -1,0 +1,64 @@
+{% extends "service/base.html" %}
+
+{% block title %}Ordens de Serviço | HigiFlow{% endblock %}
+
+{% block content %}
+    <section class="page-heading service-orders-heading">
+        <div>
+            <h1>Ordens de Serviço</h1>
+            <p>Acompanhe o status dos serviços em andamento</p>
+        </div>
+    </section>
+
+    <section class="service-orders-board" aria-label="Ordens de serviço por status">
+        {% for coluna in colunas_ordens %}
+            <article class="service-orders-column" aria-label="{{ coluna.title }}">
+                <header class="service-orders-column-header">
+                    <h2>{{ coluna.title }}</h2>
+                    <span>{{ coluna.cards|length }}</span>
+                </header>
+
+                <div class="service-orders-list">
+                    {% for card in coluna.cards %}
+                        <article class="service-order-card service-order-card-{{ card.status_key }}">
+                            <div class="service-order-card-top">
+                                <span class="service-order-number">
+                                    <i class="bi bi-grip-vertical"></i>
+                                    {{ card.numero }}
+                                </span>
+                                <span class="service-order-status service-order-status-{{ card.status_key }}">
+                                    {{ card.status_label }}
+                                </span>
+                            </div>
+
+                            <div class="service-order-card-body">
+                                <p class="service-order-client">
+                                    <i class="bi bi-person"></i>
+                                    <strong>{{ card.cliente }}</strong>
+                                </p>
+                                <p class="service-order-service">{{ card.servico }}</p>
+                                {% if card.agenda %}
+                                    <p class="service-order-date">
+                                        <i class="bi bi-calendar3"></i>
+                                        <span>{{ card.agenda }}</span>
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <footer class="service-order-card-footer">
+                                <strong>{{ card.valor }}</strong>
+                                {% if card.obj %}
+                                    <a href="{% url 'orcamento_detalhe' card.obj.pk %}">Ver detalhes</a>
+                                {% else %}
+                                    <a href="{% url 'orcamentos' %}">Ver detalhes</a>
+                                {% endif %}
+                            </footer>
+                        </article>
+                    {% empty %}
+                        <div class="service-orders-empty">Sem ordens nesta etapa.</div>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% endblock %}
