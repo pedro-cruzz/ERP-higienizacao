@@ -69,6 +69,14 @@ class ServiceViewsTests(TestCase):
         self.assertContains(response, "Cliente Dashboard")
         self.assertContains(response, "100%")
 
+    def test_agenda_retorna_ok(self):
+        response = self.client.get(reverse("agenda"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "agenda-calendar-card")
+        self.assertContains(response, "Gerencie os agendamentos de todas as equipes")
+        self.assertContains(response, "Pedro Lima")
+
     def test_cria_lead(self):
         response = self.client.post(
             reverse("novo_lead"),
@@ -229,6 +237,22 @@ class ServiceViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Cliente Lista")
         self.assertContains(response, "120.00")
+
+    def test_lista_ordens_servico_retorna_ok(self):
+        orcamento = Orcamento.objects.create(
+            name="Cliente Ordem",
+            email="ordem@teste.com",
+            quantidade=1,
+            valor=120.0,
+        )
+        orcamento.itens.set([self.item_a])
+
+        response = self.client.get(reverse("ordens_servico"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "service-orders-board")
+        self.assertContains(response, "Cliente Ordem")
+        self.assertContains(response, "R$ 120")
 
     def test_deleta_cliente_sem_apagar_orcamento(self):
         cliente = Cliente.objects.create(
